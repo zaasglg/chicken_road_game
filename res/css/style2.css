@@ -1,0 +1,281 @@
+#logo{ height:100%; width:240px; border:0; cursor:pointer; text-decoration:none; display:flex; flex-flow:row nowrap; justify-content:center; align-items:center; gap:0 flex-grow:0; flex-shrink:0; background:url('../img/logo.svg') center center no-repeat; padding-left:20px; } 
+#logo img{ height:60%; width:auto; } 
+#logo img:last-child{ display:none; }
+@media (max-width:760px){
+    header#header{ padding:0; }
+    #logo{ padding-left:5px; }
+    #logo img:first-child{ display:none; }
+    #logo img:last-child{ display:block; } 
+    .basic_radio .gray_input{ padding:0; }
+}
+
+
+
+#main_wrapper{ background:#394265; }
+#game_container{ position:relative; }
+/*#game_container{ min-height:calc( 100vh - 236px ); } */
+
+/* Desktop fit fix */
+@media (min-width: 1111px) {
+    #main_wrapper{ min-height: 100vh; }
+    main{ overflow-y: hidden; overflow-x: hidden; }
+    #game_container{ height: 100%; max-height: calc(100vh - 220px); }
+    #battlefield .sector{ height: 50%; }
+}
+
+@media ( max-width:1110px ){
+    #game_container{ min-height:calc( 100vh - 435px ); }
+}
+@media ( max-width:700px ){
+    #game_container{ min-height:500px; }
+    #main_wrapper {
+          /* min-height: 100dvh;  */
+  /* box-sizing: border-box; */
+        /* min-height: 100vh;  */
+        /* overflow-y: scroll; */
+        /* padding-top: 20%;
+        padding-bottom: 50%; */
+        height: 100%;
+        overflow: clip;
+    }
+}
+@media ( max-width:400px ){
+    #game_container{ min-height:375px; }  
+    footer#footer{ padding:8px; padding:8px; } 
+    #bet_wrapper{ height:auto; justify-content:center; padding: 8px; gap:8px; }
+    #close{ height:50px; font-size:16px; }
+    #buttons_wrapper{ gap:8px; }
+    #close_bet{ font-size:16px; }
+    #close_bet span{ font-size:14px; }
+    #start{ height:50px; font-size:16px; }
+    #values .basic_radio label.gray_input{ height:40px !important; }
+    #dificulity .radio_buttons label  span{ font-size:12px; } 
+    .bet_value_wrapper{ min-height:auto; } 
+    #dificulity .radio_buttons{ height:40px; }
+}
+
+#battlefield{ height:100%; width:auto; position:absolute; top:0; left:0; bottom:0; display:flex; flex-flow:row nowrap; justify-content:start; align-items:start; gap:0; transition:all 0.5s linear; }
+#battlefield .sector{ width:clamp( 120px, 20vw, 250px ); height:100%; position:relative; display:flex; flex-flow:column nowrap; justify-content:flex-end; align-items:stretch; gap:0; background:transparent url('../img/border.png') right center repeat-y; background-size:5px auto; cursor:pointer; }
+#battlefield .sector:first-child{ background:#2d324d; }
+#battlefield .sector *{ user-select: none; }
+#battlefield .sector.closer{ background:#2d324d; background-image:none; }
+#battlefield .sector.closer:before{ content:""; width:50px; position:absolute; top:0; left:0; bottom:50px; ;background:#2d324d url('../img/walll.png') left center repeat-y; background-size:100% auto; } 
+#battlefield .sector.closer:after{ content:""; width:50px; position:absolute; top:0; right:0; bottom:50px; background:#2d324d url('../img/wallr.png') right center repeat-y; background-size:100% auto; }
+#battlefield .sector .border{ height:50px; width:100%; background:transparent url('../img/footer1.png') center center repeat-x; position:relative; } 
+#battlefield .sector:nth-child(odd) .border{ background-image:url('../img/footer2.png'); } 
+#battlefield .sector .entry{ width:70%; aspect-ratio:100/250; }
+#battlefield .sector .frame{ width:60%; aspect-ratio:1; flex-grow:0; flex-shrink:0; }
+#battlefield .sector .arc{ width:90%; flex-grow:0; flex-shrink:0; } 
+#battlefield .sector .breaks{ height:60px; width:100%; background:transparent url('../img/break3.png') 20px center no-repeat; background-size:auto 40px; } 
+#battlefield .sector .breaks[breaks="0"]{ background:transparent; }
+#battlefield .sector .breaks[breaks="1"]{ background:transparent url('../img/break1.png') 20px center no-repeat; background-size:auto 40px; }
+#battlefield .sector .breaks[breaks="2"]{ background:transparent url('../img/break1.png') 80px center no-repeat; background-size:auto 40px; }
+#battlefield .sector .breaks[breaks="3"]{ background:transparent url('../img/break1.png') 100px center no-repeat; background-size:auto 40px; }
+#battlefield .sector .breaks[breaks="4"]{ background:transparent url('../img/break2.png') 20px center no-repeat; background-size:auto 40px; }
+#battlefield .sector .breaks[breaks="5"]{ background:transparent url('../img/break2.png') 60px center no-repeat; background-size:auto 40px; }
+#battlefield .sector .breaks[breaks="6"]{ background:transparent url('../img/break2.png') 100px center no-repeat; background-size:auto 40px; }
+#battlefield .sector .breaks[breaks="7"]{ background:transparent url('../img/break3.png') 20px center no-repeat; background-size:auto 40px; }
+#battlefield .sector .breaks[breaks="8"]{ background:transparent url('../img/break3.png') 50px center no-repeat; background-size:auto 40px; }
+#battlefield .sector .breaks[breaks="9"]{ background:transparent url('../img/break3.png') 90px center no-repeat; background-size:auto 40px; }
+#battlefield .sector .breaks[breaks="10"]{ background:transparent; }
+#battlefield .sector .breaks[breaks="11"]{ background:transparent; }
+#battlefield .sector .breaks[breaks="12"]{ background:transparent; }
+#battlefield .sector .breaks[breaks="13"]{ background:transparent; }
+#battlefield .sector .breaks[breaks="14"]{ background:transparent; }
+#battlefield .sector .breaks[breaks="15"]{ background:transparent; }
+#battlefield .sector .breaks[breaks="16"]{ background:transparent; }
+#battlefield .sector .coincontainer{ width:100%; height:auto; display:flex; flex-flow:row nowrap; justify-content:center; align-items:center; gap:0; position:relative; transform-origin:center; transition:transform 0.5s linear; perspective:1000px; }
+#battlefield .sector .coincontainer .coinwrapper{ width:75%; }
+#battlefield .sector .coincontainer .coin{ width:62%; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); } 
+#battlefield .sector .coincontainer .a{}
+#battlefield .sector .coincontainer .b{ opacity:0; }
+#battlefield .sector .coincontainer .c{ opacity:0; }
+#battlefield .sector .coincontainer .d{ opacity:0; }
+#battlefield .sector .coincontainer .f{ opacity:0; }
+#battlefield .sector .coincontainer .g{ opacity:0; } 
+#battlefield .sector .coincontainer span{ font:bold 40px 'Roboto', 'Arial'; color:#fff; text-shadow:2px 2px 2px #000; text-align:center; width:100%; position:absolute; top:50%; left:0; right:0; transform:translateY(-50%); transition-delay:0.25s; opacity:1; }
+#battlefield .sector.far .coincontainer{ opacity:0.6; }
+#battlefield .sector.far:hover .coincontainer{ opacity:1; }
+
+#battlefield .sector.complete .coincontainer{ animation:coin2 0.5s linear; } 
+#battlefield .sector.complete .coincontainer span{ display:none; } 
+#battlefield .sector.complete .coincontainer .a{ opacity:0; transition:opacity 0.001s steps(1) linear; transition-delay: 0.25s; } 
+#battlefield .sector.complete .coincontainer .c{ opacity:0; transition:opacity 0.001s steps(1) linear; transition-delay: 0.25s; } 
+#battlefield .sector.complete .coincontainer .d{ opacity:1; transition:opacity 0.001s steps(1) linear; transition-delay: 0.25s; } 
+
+#battlefield .sector.active .coincontainer{ animation:coin 0.5s linear; } 
+#battlefield .sector.active .coincontainer .a{ opacity:0; transition:opacity 0.001s steps(1) linear; transition-delay: 0.25s; } 
+#battlefield .sector.active .coincontainer .c{ opacity:0; transition:opacity 0.001s steps(1) linear; transition-delay: 0.25s; } 
+#battlefield .sector.active .coincontainer .b{ opacity:1; transition:opacity 0.001s steps(1) linear; transition-delay: 0.25s; } 
+
+#battlefield .sector.dead .coincontainer{ animation:coin3 0.5s linear; } 
+#battlefield .sector.dead .coincontainer span{ display:none; } 
+#battlefield .sector.dead .coincontainer .a{ opacity:0; transition:opacity 0.001s steps(1) linear; transition-delay: 0.25s; } 
+#battlefield .sector.dead .coincontainer .b{ opacity:0; transition:opacity 0.001s steps(1) linear; transition-delay: 0.25s; } 
+#battlefield .sector.dead .coincontainer .c{ opacity:1; transition:opacity 0.001s steps(1) linear; transition-delay: 0.25s; } 
+#battlefield .sector.finish{ background:transparent; }
+
+#battlefield .sector .flame{ display:none; width:90%; aspect-ratio:100/137; position:absolute; bottom:50px; left:5%; background:transparent url('../img/mini_fire.png') left top no-repeat; background-size:400% 300%; animation:flame 1s steps(1) infinite; } 
+#battlefield .sector.flame .flame{ display:block; }
+
+#battlefield .sector .cup{ width:50%; height:auto; position:absolute; bottom:50px; left:25%; }
+#battlefield .sector .lights{ display:none; width:100%; height:auto; position:absolute; bottom:50px; left:0%; filter:sepia(100%) hue-rotate(10deg) saturate(900%) brightness(1.1); } 
+#battlefield .sector.active .lights{ display:block; }
+#battlefield .sector .trigger{ width:70%; height:auto; position:absolute; bottom:40px; left:15%; transition:all 0.3s linear; } 
+#battlefield .sector .trigger.activated{ bottom:0; }
+#battlefield .sector.finish .coincontainer{ position:absolute; bottom:370px; left:0px; right:0px; animation:move-egg 3s linear infinite; }
+#battlefield .sector.finish .e{ opacity:1; }
+#battlefield .sector.finish .f{ opacity:0; }
+#battlefield .sector.finish .g{ opacity:0; }
+#battlefield .sector.finish.win .e{ opacity:0; }
+#battlefield .sector.finish.win .f{ opacity:1; }
+#battlefield .sector.finish.win .g{ opacity:0; } 
+#battlefield .sector.finish.lose .e{ opacity:0; }
+#battlefield .sector.finish.lose .f{ opacity:0; }
+#battlefield .sector.finish.lose .g{ opacity:1; }
+#battlefield .sector.finish.lose .coincontainer span{ opacity:0; }
+
+.place_light{ display:none; width:100%; aspect-ratio:1; position:absolute; bottom:50px; left:0%; opacity:0.5; }
+.place_light::before { content: ""; position: absolute; top:0; left:0; width:100%; height:100%;
+    background: linear-gradient( to bottom, rgba(255, 200, 0, 0) 0%, rgba(255, 132, 0, 0.7) 100% ); 
+    animation: pulse-gradient 5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; 
+}
+#battlefield .sector.active .place_light{ display:block; }
+
+.finish_light{ width:80%; height:300px; position:absolute; bottom:50px; left:10%; opacity:0.5; }
+.finish_light::before { content: ""; position: absolute; top:0; left:0; width:100%; height:100%;
+    background: linear-gradient( to bottom, rgba(255, 200, 0, 0) 0%, rgba(255, 132, 0, 0.7) 100% );
+    clip-path: polygon( 0% 0%, 100% 0%, 75% 100%, 25% 100% );
+    animation: pulse-gradient 5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; 
+}
+
+#chick{ width:0px; height:0px; background:red; position:absolute; bottom:50px; left:125px; transition:all 0.2s linear; }
+#chick .inner{ content:""; width:302px; aspect-ratio: 1/1; position:absolute; bottom:-65px; left:50%; transform:translateX(-50%) scale(0.7); border:solid 0px #fff; image-rendering: crisp-edges; }
+#chick[state="idle"] .inner{ background: transparent url('../img/chicken_idle.png') 0% 0% no-repeat; background-size:1510px 1510px; animation:chicken-idle 4s steps(1) infinite; image-rendering: pixelated; }
+#chick[state="go"] .inner{ background: transparent url('../img/chicken_go.png') 0% 0% no-repeat; background-size:1208px 1208px; animation:chicken-go 0.5s steps(1); image-rendering: pixelated; } 
+#chick[state="dead"] .inner{ background: transparent url('../img/chicken_dead.png') center bottom no-repeat; background-size:100%; image-rendering: pixelated; } 
+
+#fire{ display:none; width:clamp( 120px, 20vw, 250px ); position:absolute; top:0; left:500px; bottom:50px; background:transparent url('') center bottom; background-size:100%; } 
+#fire.active{ display:block; animation:fire 2s linear; } 
+
+@media (max-width:800px){
+    #battlefield .sector .coincontainer span{ font-size:30px; }
+}
+@media (max-width:400px){
+    #battlefield .sector .coincontainer span{ font-size:30px; }
+    #battlefield .sector .border{ height:30px; background-size:auto 100%; }
+    #battlefield .sector .trigger{ bottom:25px; } 
+    .place_light{ bottom:30px; }
+    #fire{ bottom:30px; }
+}
+
+@keyframes pulse-gradient {
+    0%, 100% { background: linear-gradient( to bottom, rgba(255, 225, 0, 0) 0%, rgba(255, 132, 0, 0.7) 100% ); filter:brightness(0.8); }
+    50% { background: linear-gradient( to bottom, rgba(255, 240, 120, 0) 0%, rgba(255, 132, 0, 0.7) 100% ); filter: brightness(1.1); }
+}
+@keyframes coin{
+    0%{ transform:rotateY(0deg); }
+    50%{ transform:rotateY(90deg); }
+    100%{ transform:rotateY(0deg); }
+} 
+@keyframes coin2{
+    0%{ transform:rotateY(0deg); }
+    50%{ transform:rotateY(90deg); }
+    100%{ transform:rotateY(0deg); }
+} 
+@keyframes coin3{
+    0%{ transform:rotateY(0deg); }
+    50%{ transform:rotateY(90deg); }
+    100%{ transform:rotateY(0deg); }
+} 
+@keyframes flame{ 
+    0%    { background-position: 0% 0%; }
+    9%    { background-position: calc(100% / 3) 0%; } 
+    18%   { background-position: calc(200% / 3) 0%; } 
+    27%   { background-position: 100% 0%; }
+    36%   { background-position: 0% 50%; }
+    45%   { background-position: calc(100% / 3) 50%; } 
+    54%   { background-position: calc(200% / 3) 50%; } 
+    63%   { background-position: 100% 50%; }
+    72%   { background-position: 0% 100%; }
+    81%   { background-position: calc(100% / 3) 100%; } 
+    90%   { background-position: calc(200% / 3) 100%; } 
+    100%  { background-position: 100% 100%; }
+} 
+@keyframes move-egg{
+    0%{ transform:translateY(0px); }
+    25%{ transform:translateY(30px); }
+    50%{ transform:translateY(0px); }
+    75%{ transform:translateY(-30px); }
+    100%{ transform:translateY(0px); }
+}
+@keyframes chicken-idle { 
+    0% { background-position: 0px 0px; }
+    4% { background-position: -302px 0px; }
+    8% { background-position: -604px 0px; }
+    12% { background-position: -906px 0px; }
+    16% { background-position: -1208px 0px; } 
+    20% { background-position: 0px -302px; }
+    24% { background-position: -302px -302px; }
+    28% { background-position: -604px -302px; }
+    32% { background-position: -906px -302px; }
+    36% { background-position: -1208px -302px; } 
+    40% { background-position: 0px -604px; }
+    44% { background-position: -302px -604px; }
+    48% { background-position: -604px -604px; }
+    52% { background-position: -906px -604px; }
+    56% { background-position: -1208px -604px; } 
+    60% { background-position: 0px -906px; }
+    64% { background-position: -302px -906px; }
+    68% { background-position: -604px -906px; }
+    72% { background-position: -906px -906px; }
+    76% { background-position: -1208px -906px; } 
+    80% { background-position: 0px -1208px; }
+    84% { background-position: -302px -1208px; }
+    88% { background-position: -604px -1208px; }
+    92% { background-position: -906px -1208px; }
+    100% { background-position: 0px 0px; } 
+}
+@keyframes chicken-go {  
+    6.25% { background-position: 0px 0px; }
+    12.5% { background-position: -302px 0px; }
+    18.75% { background-position: -604px 0px; }
+    25% { background-position: -906px 0px; } 
+    31.25% { background-position: 0px -302px; }
+    37.5% { background-position: -302px -302px; }
+    43.75% { background-position: -604px -302px; }
+    50% { background-position: -906px -302px; } 
+    56.25% { background-position: 0px -604px; }
+    62.5% { background-position: -302px -604px; }
+    68.75% { background-position: -604px -604px; }
+    75% { background-position: -906px -604px; } 
+    81.25% { background-position: 0px -906px; }
+    87.5% { background-position: -302px -906px; }
+    93.75% { background-position: -604px -906px; }
+    100% { background-position: -906px -906px; } 
+}
+@keyframes fire{
+    0%{ background-image:url('../img/fire_1.png'); }
+    5%{ background-image:url('../img/fire_2.png'); }
+    10%{ background-image:url('../img/fire_3.png'); }
+    15%{ background-image:url('../img/fire_4.png'); }
+    20%{ background-image:url('../img/fire_5.png'); }
+    25%{ background-image:url('../img/fire_6.png'); }
+    30%{ background-image:url('../img/fire_7.png'); }
+    35%{ background-image:url('../img/fire_8.png'); }
+    40%{ background-image:url('../img/fire_9.png'); }
+    45%{ background-image:url('../img/fire_10.png'); }
+    50%{ background-image:url('../img/fire_11.png'); }
+    55%{ background-image:url('../img/fire_12.png'); }
+    60%{ background-image:url('../img/fire_13.png'); }
+    65%{ background-image:url('../img/fire_14.png'); }
+    70%{ background-image:url('../img/fire_15.png'); }
+    75%{ background-image:url('../img/fire_16.png'); }
+    80%{ background-image:url('../img/fire_17.png'); }
+    85%{ background-image:url('../img/fire_18.png'); }
+    90%{ background-image:url('../img/fire_19.png'); }
+    95%{ background-image:url('../img/fire_20.png'); }
+    100%{ background-image:url('../img/fire_21.png'); }
+}
+
+

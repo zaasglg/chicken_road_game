@@ -1,0 +1,17 @@
+{
+    "name": "valorgames/chicken-road-websocket",
+    "description": "WebSocket сервер для игры Chicken Road",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "ratchet/pawl": "^0.4",
+        "react/socket": "^1.0",
+        "cboden/ratchet": "^0.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "ChickenRoad\\": "src/"
+        }
+    },
+    "minimum-stability": "stable"
+}

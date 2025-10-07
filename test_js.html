@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест JavaScript API Chicken Road</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Тест JavaScript API Chicken Road</h1>
+    
+    <div>
+        <h2>Тест сохранения результата игры</h2>
+        <button id="testSaveResult">Тест save_game_result</button>
+        <div id="saveResultOutput"></div>
+    </div>
+    
+    <div>
+        <h2>Тест обновления баланса</h2>
+        <button id="testUpdateBalance">Тест update_balance</button>
+        <div id="updateBalanceOutput"></div>
+    </div>
+    
+    <div>
+        <h2>Тест получения баланса</h2>
+        <button id="testGetBalance">Тест get_user_balance</button>
+        <div id="getBalanceOutput"></div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Тест save_game_result
+            $('#testSaveResult').click(function() {
+                var gameData = {
+                    user_id: 999999, // Несуществующий пользователь для теста
+                    balance: 450,
+                    bet_amount: 50,
+                    win_amount: 100,
+                    game_result: 'win'
+                };
+                
+                $.ajax({
+                    url: '/chicken-road/api/users/save_game_result',
+                    type: 'POST',
+                    data: gameData,
+                    dataType: 'json',
+                    success: function(response) {
+                        $('#saveResultOutput').html('<pre>' + JSON.stringify(response, null, 2) + '</pre>');
+                    },
+                    error: function(xhr, status, error) {
+                        $('#saveResultOutput').html('<span style="color: red;">Ошибка: ' + error + '</span>');
+                    }
+                });
+            });
+            
+            // Тест update_balance
+            $('#testUpdateBalance').click(function() {
+                var balanceData = {
+                    user_id: 999999, // Несуществующий пользователь для теста
+                    balance: 500
+                };
+                
+                $.ajax({
+                    url: '/chicken-road/api/users/update_balance',
+                    type: 'POST',
+                    data: balanceData,
+                    dataType: 'json',
+                    success: function(response) {
+                        $('#updateBalanceOutput').html('<pre>' + JSON.stringify(response, null, 2) + '</pre>');
+                    },
+                    error: function(xhr, status, error) {
+                        $('#updateBalanceOutput').html('<span style="color: red;">Ошибка: ' + error + '</span>');
+                    }
+                });
+            });
+            
+            // Тест get_user_balance
+            $('#testGetBalance').click(function() {
+                $.ajax({
+                    url: '/chicken-road/api/users/get_user_balance',
+                    type: 'POST',
+                    data: { user_id: 999999 }, // Несуществующий пользователь для теста
+                    dataType: 'json',
+                    success: function(response) {
+                        $('#getBalanceOutput').html('<pre>' + JSON.stringify(response, null, 2) + '</pre>');
+                    },
+                    error: function(xhr, status, error) {
+                        $('#getBalanceOutput').html('<span style="color: red;">Ошибка: ' + error + '</span>');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
