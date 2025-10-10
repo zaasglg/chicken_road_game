@@ -1,73 +1,4 @@
-<?php
-//$_SESSION['user'] = Users::GI()->get([ 'uid'=>UID ]);
-include_once BASE_DIR ."common.php";  
 
-// Подключаем логику конвертации валют
-require_once BASE_DIR . 'currency.php';
-
-// Получаем данные пользователя и конвертируем баланс
-$user_balance_usd = 0;
-$user_country = '';
-$user_currency_rate = 1;
-$is_real_mode = false;
-
-if (isset($_GET['user_id']) && $_GET['user_id'] && $_GET['user_id'] !== 'demo') {
-    $is_real_mode = true;
-    
-    // Получаем страну пользователя из основной базы данных
-    require_once BASE_DIR . 'classes/DB2.class.php';
-    $user_data = DB2::getInstance()->get("SELECT country, deposit FROM users WHERE user_id = ?", [intval($_GET['user_id'])]);
-    if ($user_data) {
-        $user_country = $user_data['country'];
-        $user_currency_rate = getCurrencyRate($user_country);
-        
-        // Сохраняем курс в сессии для использования в JavaScript
-        $_SESSION['CHICKEN_USER_RATE'] = $user_currency_rate;
-        $_SESSION['CHICKEN_USER_COUNTRY'] = $user_country;
-    }
-    
-    // Всегда читаем баланс из основной базы данных
-    $user_data = DB2::getInstance()->get("SELECT deposit, country FROM users WHERE user_id = ?", [intval($_GET['user_id'])]);
-    if ($user_data) {
-        // Конвертируем баланс из национальной валюты в доллары для отображения в игре
-        $balance_national = (float)$user_data['deposit'];
-        $user_balance_usd = convertToUSD($balance_national, $user_data['country']);
-    } else {
-        $user_balance_usd = 0;
-    }
-} else {
-    // Демо режим - всегда используем фиксированный баланс $500
-    $user_balance_usd = 500;
-    
-    // Также устанавливаем баланс в сессии для демо пользователя
-    if (!isset($_SESSION['user'])) {
-        $_SESSION['user'] = [
-            'uid' => 'demo_' . uniqid(),
-            'balance' => 500
-        ];
-    } else {
-        $_SESSION['user']['balance'] = 500;
-    }
-    // Инициализируем демо-баланс в сессии
-    if (!isset($_SESSION['chicken_demo'])) {
-        $_SESSION['chicken_demo'] = 500;
-    }
-}
-
-// Загружаем коэффициенты для игры
-$cfs_data = [];
-try {
-    $cfs_data = Cfs::GI()->load(['full' => 1]);
-} catch (Exception $e) {
-    // Если не удалось загрузить из базы, используем значения по умолчанию
-    $cfs_data = [
-        'easy' => [ 1.03, 1.07, 1.12, 1.17, 1.23, 1.29, 1.36, 1.44, 1.53, 1.63, 1.75, 1.88, 2.04, 2.22, 2.45, 2.72, 3.06, 3.50, 4.08, 4.90, 6.13, 6.61, 9.81, 19.44 ], 
-        'medium' => [ 1.12, 1.28, 1.47, 1.70, 1.98, 2.33, 2.76, 3.32, 4.03, 4.96, 6.20, 6.91, 8.90, 11.74, 15.99, 22.61, 33.58, 53.20, 92.17, 182.51, 451.71, 1788.80 ],  
-        'hard' => [ 1.23, 1.55, 1.98, 2.56, 3.36, 4.49, 5.49, 7.53, 10.56, 15.21, 22.59, 34.79, 55.97, 94.99, 172.42, 341.40, 760.46, 2007.63, 6956.47, 41321.43 ], 
-        'hardcore' => [ 1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19, 2643.89, 9161.08, 39301.05, 233448.29 ]
-    ];
-}
-?>
 <div id="main_wrapper">
     <header id="header">
         <div id="logo"></div>
@@ -76,7 +7,7 @@ try {
         </div> -->
         <div class="menu">
             <button data-rel="menu-balance">
-                <span id="user_balance"><?= number_format($user_balance_usd, 2, '.', ''); ?></span><svg width="18"
+                <span id="user_balance"><?= number_format(isset($user_balance_usd) ? $user_balance_usd : 500, 2, '.', ''); ?></span><svg width="18"
                     height="18" viewBox="0 0 18 18" style="fill: rgb(255, 255, 255);">
                     <use xlink:href="./res/img/currency.svg#USD"></use>
                 </svg>
@@ -177,18 +108,10 @@ try {
                 <use xlink:href="./res/img/currency.svg#USD"></use>
             </svg></h4>
     </div>
-</div>
 <div id="splash">
     <span id="loader"></span>
-    <div class="disclaimer">
-        <h4><img src="./res/img/icon-help.svg" alt=""></h4>
-        <p><?= TEXT_ETRY_MODAL_MAIN; ?></p>
-        <button><?= TEXT_ENTRY_MODAL_BTN_OK; ?></button>
-    </div>
 </div>
-<div id="overlay"></div>
 <script>
-    // Загружаем коэффициенты для игры
     window.CFS = <?= json_encode($cfs_data); ?>;
     
     // Информация о пользователе и игре

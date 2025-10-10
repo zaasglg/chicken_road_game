@@ -76,7 +76,64 @@ var SOUNDS = {
 
 class Game{
     constructor( $obj ){ 
-        this.balance = +$('[data-rel="menu-balance"] span').html(); 
+        // Получаем параметры из URL
+        var urlParams = new URLSearchParams(window.location.search);
+        var balanceParam = urlParams.get('balance');
+        var userIdParam = urlParams.get('user_id');
+        var demoParam = urlParams.get('demo');
+        var countryParam = urlParams.get('country');
+        var langParam = urlParams.get('lang');
+        
+        // Устанавливаем валюту на основе страны
+        if (countryParam) {
+            var currencyMap = {
+                'Venezuela': 'VES',
+                'Colombia': 'COP',
+                'Ecuador': 'ECS',
+                'Costa Rica': 'CRC',
+                'Paraguay': 'PYG',
+                'Mexico': 'MXN',
+                'Argentina': 'ARS',
+                'Brazil': 'BRL'
+            };
+            var currency = currencyMap[countryParam] || 'USD';
+            SETTINGS.currency = currency;
+            console.log('Currency set from country:', countryParam, '->', currency);
+            
+            // Обновляем валюту в интерфейсе
+            $('svg use').attr('xlink:href', './res/img/currency.svg#' + currency);
+        }
+        
+        // Устанавливаем язык
+        if (langParam) {
+            console.log('Language set from URL:', langParam);
+            // Здесь можно добавить логику смены языка
+        }
+        
+        // Initialize balance with proper error handling
+        const balanceElement = $('[data-rel="menu-balance"] span');
+        const balanceText = balanceElement.length > 0 ? balanceElement.html() : '0';
+        this.balance = parseFloat(balanceText) || 0;
+        
+        // Если это демо режим, устанавливаем 500 USD
+        if (userIdParam === 'demo' || !userIdParam || demoParam === 'true') {
+            this.balance = 500;
+            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
+            console.log('Demo mode activated - balance set to 500');
+        } else if (balanceParam) {
+            // Если указан баланс в URL, используем его
+            this.balance = parseFloat(balanceParam);
+            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
+            console.log('Balance set from URL:', this.balance);
+        }
+        
+        // Fallback to window.GAME_CONFIG.balance if available
+        if (this.balance === 0 && window.GAME_CONFIG && window.GAME_CONFIG.balance) {
+            this.balance = window.GAME_CONFIG.balance;
+            console.log('Using fallback balance from GAME_CONFIG:', this.balance);
+        }
+        
+        console.log('Game constructor - balance element found:', balanceElement.length > 0, 'balance text:', balanceText, 'parsed balance:', this.balance);
         this.currency = SETTINGS.currency; 
         this.stp = 0;  
         this.cur_cfs = 'easy'; 
@@ -399,8 +456,18 @@ class Game{
             });
         });
     }
+    refreshBalance() {
+        const balanceElement = $('[data-rel="menu-balance"] span');
+        const balanceText = balanceElement.length > 0 ? balanceElement.html() : '0';
+        this.balance = parseFloat(balanceText) || 0;
+        console.log('Balance refreshed from DOM:', this.balance);
+        return this.balance;
+    }
+    
     start(){ 
         console.log('GAME.start() called');
+        // Refresh balance from DOM before starting
+        this.refreshBalance();
         this.current_bet = +$('#bet_size').val();
         console.log('Current bet:', this.current_bet, 'Balance:', this.balance);
         if( this.current_bet && this.current_bet <= this.balance && this.current_bet > 0 ){ 
@@ -887,6 +954,12 @@ function open_game(){
     SETTINGS.w = document.querySelector('#game_container').offsetWidth;
     SETTINGS.h = document.querySelector('#game_container').offsetHeight;
     SETTINGS.segw = parseInt( $('#battlefield .sector').css('width') );
+    
+    // Refresh balance from DOM when game opens
+    if (GAME && typeof GAME.refreshBalance === 'function') {
+        GAME.refreshBalance();
+        console.log('Balance refreshed in open_game():', GAME.balance);
+    }
     
     $('#splash').addClass('show_modal');
     var $music_settings = SETTINGS.volume.music; 

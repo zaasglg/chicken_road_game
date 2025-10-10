@@ -47,6 +47,13 @@
             TEXT_BETS_WRAPPER_PLAY: '<?= TEXT_BETS_WRAPPER_PLAY; ?>',  
             TEXT_BETS_WRAPPER_GO: '<?= TEXT_BETS_WRAPPER_GO; ?>', 
             TEXT_BETS_WRAPPER_WAIT: '<?= TEXT_BETS_WRAPPER_WAIT; ?>'
-        }
+        };
+        
+        // Game configuration for demo mode
+        window.GAME_CONFIG = {
+            is_real_mode: false,
+            user_id: 'demo',
+            balance: 1000
+        };
     </script>
 </head>

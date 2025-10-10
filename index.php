@@ -9,11 +9,6 @@
 	$localization = BASE_DIR ."localization_". LANG .".php"; 
 	include_once is_file( $localization ) ? $localization : BASE_DIR ."localization.php";
 	
-	if( ISAPI ){ 
-		include_once BASE_DIR ."api.php";
-		exit();
-	} 
-
 	if( !defined('TPL') ){ define('TPL', "404"); } 
     if( !defined('PAGETITLE') ){ define('PAGETITLE', BASE_TITLE ); } 
     if( !defined('PAGEKEYWORDS') ){ define('PAGEKEYWORDS', "Choose from four difficulty levels: easy, medium, hard or hardcore. Each level of difficulty increases the possible winning odds, but the risk of getting fried also increases with each step."); } 

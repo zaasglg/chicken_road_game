@@ -1064,9 +1064,38 @@ class Game {
         var urlParams = new URLSearchParams(window.location.search);
         var balanceParam = urlParams.get('balance');
         var userIdParam = urlParams.get('user_id');
+        var demoParam = urlParams.get('demo');
+        var countryParam = urlParams.get('country');
+        var langParam = urlParams.get('lang');
+        
+        // Устанавливаем валюту на основе страны
+        if (countryParam) {
+            var currencyMap = {
+                'Venezuela': 'VES',
+                'Colombia': 'COP',
+                'Ecuador': 'ECS',
+                'Costa Rica': 'CRC',
+                'Paraguay': 'PYG',
+                'Mexico': 'MXN',
+                'Argentina': 'ARS',
+                'Brazil': 'BRL'
+            };
+            var currency = currencyMap[countryParam] || 'USD';
+            this.currency = currency;
+            console.log('Currency set from country:', countryParam, '->', currency);
+            
+            // Обновляем валюту в интерфейсе
+            $('svg use').attr('xlink:href', './res/img/currency.svg#' + currency);
+        }
+        
+        // Устанавливаем язык
+        if (langParam) {
+            console.log('Language set from URL:', langParam);
+            // Здесь можно добавить логику смены языка
+        }
         
         // Если это демо режим, устанавливаем 500 USD
-        if (userIdParam === 'demo' || !userIdParam) {
+        if (userIdParam === 'demo' || !userIdParam || demoParam === 'true') {
             this.balance = 500;
             $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
         } else {

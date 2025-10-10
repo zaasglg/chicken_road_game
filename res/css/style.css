@@ -16,21 +16,15 @@ main{ width:100%; flex-grow:1; flex-shrink:1; display:flex; flex-flow:row nowrap
 #game_container{ width:100%; height:100%; position:relative; }
 #game_field{ width:100%; height:100%; } 
 
-#splash{ display:flex; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,1); border:0; flex-flow:column nowrap; justify-content:center; align-items:center; gap:0; color:#fff; font-size:16px; opacity:1; transition:all 0.5 linear; }
+#splash{ display:flex; position:fixed; inset:0; z-index:1000; background:transparent; border:0; flex-flow:column nowrap; justify-content:center; align-items:center; gap:0; color:#fff; font-size:16px; opacity:1; transition:all 0.5 linear; }
 #splash h4{ color:#fff; font-size:5rem; font-weight:700; text-align:center; cursor:pointer; }
 #splash.show_modal{ background:rgba(0,0,0,0.5); backdrop-filter: blur(10px); }
-#splash .disclaimer{ display:none; width:300px; background:#2c2d30; padding:10px; flex-flow:column nowrap; justify-content:start; align-items:stretch; gap:10px; border-radius:10px; }
-#splash .disclaimer h4{ width:100%; height:30px; display:flex; flex-flow:row nowrap; justify-content:start; align-items:center; gap:0; padding:0px 0px; }
-#splash .disclaimer h4 img{ height:30px; width:auto; margin:0; }
-#splash .disclaimer p{ font-size:16px; line-height:1.5em; text-align:left; color:#fff; padding:10px 0px 20px 0px; }
-#splash .disclaimer button{ width:100%; height:40px; display:flex; flex-flow:column nowrap; justify-content:center; align-items:center; gap:0px; background:rgb(40, 169, 9); border:solid 1px rgb(178, 242, 163); border-radius:12px; cursor:pointer; color:#fff; font-size:16px; font-weight:bold; }
-#splash .disclaimer button:hover{ background:#36cb12; }
 
 #splash.show_modal .disclaimer{ display:flex; }
 #loader, 
 #loader:before, 
 #loader:after { border-radius: 50%; width: 2.5em; height: 2.5em; animation-fill-mode: both; animation: bblFadInOut 1s infinite ease-in-out; cursor:pointer; }
-#loader { color: #FFF; font-size: 7px; position: relative; text-indent: -9999em; transform: translateZ(0); animation-delay: -0.16s; }
+#loader { color: #FFF; font-size: 7px; position: relative; text-indent: -9999em; transform: translateZ(0); animation-delay: -0.16s; background: rgba(255,255,255,0.1); border-radius: 50%; }
 #loader:before,
 #loader:after { content: ''; position: absolute; top: 0; }
 #loader:before { left: -3.5em; animation-delay: -0.32s; }
@@ -43,12 +37,11 @@ main{ width:100%; flex-grow:1; flex-shrink:1; display:flex; flex-flow:row nowrap
   40% { box-shadow: 0 2.5em 0 0 }
 }
 
-#splash.show_modal #loader{ display:none; }
 
 
 
 header#header{ width:100%; height:50px; display:flex; flex-flow:row nowrap; justify-content:stretch; align-items:center; gap:0px; flex-grow:0; flex-shrink:0; background:var(--header-bg); border:0; padding-right:10px; position:relative;  } 
-#logo{ height:100%; width:240px; border:0; cursor:pointer; text-decoration:none; background:transparent url('../img/logo.svg') center center no-repeat; display:flex; flex-flow:row nowrap; justify-content:center; align-items:center; gap:0 flex-grow:0; flex-shrink:0; }
+#logo{ height:100%; width:240px; border:0; cursor:pointer; text-decoration:none; background:transparent url('../img/logo.svg') center center no-repeat; display:flex; flex-flow:row nowrap; justify-content:center; align-items:center; gap:0; flex-grow:0; flex-shrink:0; }
 #header .menu{ display:flex; flex-grow:1; flex-shrink:1; flex-flow:row nowrap; justify-content:end; align-items:center; gap:10px; padding:0px 0px; } 
 #header .menu button[data-rel="menu-balance"]{ display:flex; justify-content: center; min-width: 150px; align-items: center; padding: 4px 16px; gap: 12px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; height: 33px; color:#fff; }
 #sound_switcher{ height:33px; aspect-ratio:1; background:url('../img/sound_off.png') center center no-repeat; background-size:90%; border-radius:50%; border:0; cursor:pointer; }
