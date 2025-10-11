@@ -1,4 +1,4 @@
-#logo{ height:100%; width:240px; border:0; cursor:pointer; text-decoration:none; display:flex; flex-flow:row nowrap; justify-content:center; align-items:center; gap:0; flex-grow:0; flex-shrink:0; background:url('../img/logo.svg') center center no-repeat; padding-left:20px; } 
+#logo{ height:100%; width:240px; border:0; cursor:pointer; text-decoration:none; display:flex; flex-flow:row nowrap; justify-content:center; align-items:center; gap:0; flex-grow:0; flex-shrink:0; background:url('../img/logo.svg') center center no-repeat; padding-left:20px; background-size: contain; } 
 #logo img{ height:60%; width:auto; } 
 #logo img:last-child{ display:none; }
 @media (max-width:760px){
