@@ -597,10 +597,10 @@ class Game{
         console.log('Current bet:', this.current_bet);
         console.log('Balance before:', this.balance);
         
-        $('#overlay').show(); 
-        this.cur_status = "finish"; 
-        this.alife = 0; 
-        CHICKEN.alife = 0; 
+        console.log('=== FINISH METHOD START ===');
+        console.log('Game result:', $win);
+        console.log('Current bet:', this.current_bet);
+        console.log('Balance before calculation:', this.balance); 
         
         // Уведомляем сервер об окончании игры
         // Локальная игра - не нужно отправлять на сервер
@@ -645,7 +645,16 @@ class Game{
             
             // Отправляем напрямую в API
             console.log('Calling sendGameResultToAPI...');
-            this.sendGameResultToAPI($win, this.current_bet, $award, this.balance);
+            // Рассчитываем правильный итоговый баланс для API
+            var apiFinalBalance = $win ? (this.balance) : (this.balance); // При проигрыше баланс уже правильный (ставка вычтена)
+            console.log('Balance calculation for API (first call):', {
+                win: $win,
+                current_bet: this.current_bet,
+                award: $award,
+                current_balance: this.balance,
+                api_final_balance: apiFinalBalance
+            });
+            this.sendGameResultToAPI($win, this.current_bet, $award, apiFinalBalance);
         } else if (!this.game_result_saved && window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
             console.log('Saving game result...');
             this.game_result_saved = true;
@@ -653,7 +662,16 @@ class Game{
             
             // Также отправляем напрямую в API
             console.log('Calling sendGameResultToAPI...');
-            this.sendGameResultToAPI($win, this.current_bet, $award, this.balance);
+            // Рассчитываем правильный итоговый баланс для API
+            var apiFinalBalance = $win ? (this.balance) : (this.balance); // При проигрыше баланс уже правильный (ставка вычтена)
+            console.log('Balance calculation for API (second call):', {
+                win: $win,
+                current_bet: this.current_bet,
+                award: $award,
+                current_balance: this.balance,
+                api_final_balance: apiFinalBalance
+            });
+            this.sendGameResultToAPI($win, this.current_bet, $award, apiFinalBalance);
         } else {
             console.log('Skipping game result save - already saved or no access token');
         }
