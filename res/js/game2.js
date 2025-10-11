@@ -14,16 +14,16 @@ var SETTINGS = {
     }, 
     currency: $('body').attr('data-currency') ? $('body').attr('data-currency')  : "USD", 
     cfs: window.CFS || {
-        easy: [ 1.02, 1.04, 1.06, 1.08, 1.10, 1.12, 1.14, 1.16, 1.18, 1.20, 1.22, 1.24, 1.26, 1.28, 1.30, 1.32, 1.34, 1.36, 1.38, 1.40, 1.42, 1.44, 1.46, 1.48 ], 
-        medium: [ 1.05, 1.10, 1.15, 1.20, 1.25, 1.30, 1.35, 1.40, 1.45, 1.50, 1.55, 1.60, 1.65, 1.70, 1.75, 1.80, 1.85, 1.90, 1.95, 2.00, 2.05, 2.10 ],  
-        hard: [ 1.08, 1.16, 1.24, 1.32, 1.40, 1.48, 1.56, 1.64, 1.72, 1.80, 1.88, 1.96, 2.04, 2.12, 2.20, 2.28, 2.36, 2.44, 2.52, 2.60 ], 
-        hardcore: [ 1.10, 1.20, 1.30, 1.40, 1.50, 1.60, 1.70, 1.80, 1.90, 2.00, 2.10, 2.20, 2.30, 2.40 ]
+        easy: [ 1.03, 1.07, 1.12, 1.17, 1.23, 1.29, 1.36, 1.44, 1.53, 1.63, 1.75, 1.88, 2.04, 2.22, 2.45, 2.72, 3.06, 3.50, 4.08, 4.90, 6.13, 6.61, 9.81, 19.44 ], 
+        medium: [ 1.12, 1.28, 1.47, 1.70, 1.98, 2.33, 2.76, 3.32, 4.03, 4.96, 6.20, 6.91, 8.90, 11.74, 15.99, 22.61, 33.58, 53.20, 92.17, 182.51, 451.71, 1788.80 ],  
+        hard: [ 1.23, 1.55, 1.98, 2.56, 3.36, 4.49, 5.49, 7.53, 10.56, 15.21, 22.59, 34.79, 55.97, 94.99, 172.42, 341.40, 760.46, 2007.63, 6956.47, 41321.43 ], 
+        hardcore: [ 1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19, 2643.89, 9161.08, 39301.05, 233448.29 ]
     },  
     chance: {
-        easy: [ 3, 8 ], 
-        medium: [ 2, 6 ], 
-        hard: [ 1, 4 ], 
-        hardcore: [ 1, 3 ]
+        easy: [ 7, 23 ], 
+        medium: [ 5, 15 ], 
+        hard: [ 3, 10 ], 
+        hardcore: [ 2, 6 ]
     },
     min_bet: 0.5, 
     max_bet: 150, 
@@ -176,32 +176,24 @@ class Game{
         let trapCount;
         switch(this.cur_lvl) {
             case 'easy':
-                trapCount = Math.floor(Math.random() * 4) + 3; // 3-6 трапов (увеличено)
+                trapCount = Math.floor(Math.random() * 3) + 2; // 2-4 трапа
                 break;
             case 'medium':
-                trapCount = Math.floor(Math.random() * 5) + 4; // 4-8 трапов (увеличено)
+                trapCount = Math.floor(Math.random() * 4) + 3; // 3-6 трапов
                 break;
             case 'hard':
-                trapCount = Math.floor(Math.random() * 6) + 5; // 5-10 трапов (увеличено)
+                trapCount = Math.floor(Math.random() * 5) + 4; // 4-8 трапов
                 break;
             case 'hardcore':
-                trapCount = Math.floor(Math.random() * 7) + 7; // 7-13 трапов (увеличено)
+                trapCount = Math.floor(Math.random() * 6) + 6; // 6-11 трапов
                 break;
             default:
-                trapCount = Math.floor(Math.random() * 4) + 3;
+                trapCount = Math.floor(Math.random() * 3) + 2;
         }
         
-        // Создаем массив доступных позиций
+        // Случайно размещаем трапы, начиная с 4-го сектора (индекс 3)
         const availablePositions = [];
-        
-        // Добавляем возможность трапа в первом секторе с минимальным шансом (5%)
-        if (Math.random() < 0.05) {
-            availablePositions.push(0); // Первый сектор (индекс 0)
-            console.log('First sector trap chance activated!');
-        }
-        
-        // Добавляем остальные позиции, начиная с 2-го сектора (индекс 1)
-        for (let i = 1; i < cfs.length; i++) {
+        for (let i = 3; i < cfs.length; i++) {
             availablePositions.push(i);
         }
         
@@ -979,11 +971,6 @@ class Game{
         console.log('=== API CALL START ===');
         console.log('Access token available:', !!window.ACCESS_TOKEN);
         console.log('Access token preview:', window.ACCESS_TOKEN ? window.ACCESS_TOKEN.substring(0, 20) + '...' : 'none');
-        
-        // Проверяем токен
-        if (window.ACCESS_TOKEN) {
-            this.checkTokenValidity(window.ACCESS_TOKEN);
-        }
         console.log('Game result:', gameResult);
         console.log('Bet amount:', betAmount);
         console.log('Win amount:', winAmount);
@@ -1010,209 +997,54 @@ class Game{
         console.log('Sending game result to API:', requestData);
         console.log('Headers:', headers);
         
-        // Пробуем разные методы отправки
-        this.tryAPIMethods(headers, requestData);
-        
-        console.log('=== API CALL END ===');
-    }
-    
-    // Метод для попытки разных способов отправки API запроса
-    tryAPIMethods(headers, requestData) {
-        console.log('Trying different API methods...');
-        
-        // Метод 1: Стандартный fetch с JSON
-        this.tryFetchJSON(headers, requestData)
-            .catch(error => {
-                console.log('Method 1 (JSON) failed:', error.message);
-                
-                // Метод 2: Fetch с FormData
-                return this.tryFetchFormData(headers, requestData);
-            })
-            .catch(error => {
-                console.log('Method 2 (FormData) failed:', error.message);
-                
-                // Метод 3: XMLHttpRequest
-                return this.tryXHR(headers, requestData);
-            })
-            .catch(error => {
-                console.log('Method 3 (XHR) failed:', error.message);
-                
-                // Метод 4: Сохранение в localStorage как fallback
-                this.saveToLocalStorage(requestData);
-            });
-    }
-    
-    // Метод 1: Стандартный fetch с JSON
-    async tryFetchJSON(headers, requestData) {
-        console.log('Trying fetch with JSON...');
-        
-        const response = await fetch('https://api.valor-games.co/api/user/deposit/', {
+        fetch('https://api.valor-games.co/api/user/deposit/', {
             method: 'PUT',
             headers: headers,
             body: JSON.stringify(requestData)
-        });
-        
-        console.log('JSON fetch response status:', response.status);
-        
-        if (!response.ok) {
-            throw new Error('JSON fetch failed: ' + response.status);
-        }
-        
-        const data = await response.json();
-        console.log('JSON fetch success:', data);
-        this.handleAPISuccess(data);
-        return data;
-    }
-    
-    // Метод 2: Fetch с FormData
-    async tryFetchFormData(headers, requestData) {
-        console.log('Trying fetch with FormData...');
-        
-        const formData = new FormData();
-        formData.append('deposit', requestData.deposit);
-        
-        // Убираем Content-Type для FormData
-        const formHeaders = { ...headers };
-        delete formHeaders['Content-Type'];
-        
-        const response = await fetch('https://api.valor-games.co/api/user/deposit/', {
-            method: 'PUT',
-            headers: formHeaders,
-            body: formData
-        });
-        
-        console.log('FormData fetch response status:', response.status);
-        
-        if (!response.ok) {
-            throw new Error('FormData fetch failed: ' + response.status);
-        }
-        
-        const data = await response.json();
-        console.log('FormData fetch success:', data);
-        this.handleAPISuccess(data);
-        return data;
-    }
-    
-    // Метод 3: XMLHttpRequest
-    tryXHR(headers, requestData) {
-        console.log('Trying XMLHttpRequest...');
-        
-        return new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open('PUT', 'https://api.valor-games.co/api/user/deposit/', true);
-            
-            // Устанавливаем заголовки
-            Object.keys(headers).forEach(key => {
-                xhr.setRequestHeader(key, headers[key]);
-            });
-            
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    console.log('XHR response status:', xhr.status);
-                    
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        try {
-                            const data = JSON.parse(xhr.responseText);
-                            console.log('XHR success:', data);
-                            this.handleAPISuccess(data);
-                            resolve(data);
-                        } catch (e) {
-                            reject(new Error('XHR JSON parse error: ' + e.message));
-                        }
-                    } else {
-                        reject(new Error('XHR failed: ' + xhr.status));
-                    }
-                }
-            }.bind(this);
-            
-            xhr.onerror = function() {
-                reject(new Error('XHR network error'));
-            };
-            
-            xhr.send(JSON.stringify(requestData));
-        });
-    }
-    
-    // Метод 4: Сохранение в localStorage как fallback
-    saveToLocalStorage(requestData) {
-        console.log('Saving to localStorage as fallback...');
-        
-        const gameData = {
-            timestamp: Date.now(),
-            deposit: requestData.deposit,
-            user_id: window.GAME_CONFIG ? window.GAME_CONFIG.user_id : 'unknown',
-            url: window.location.href
-        };
-        
-        // Получаем существующие данные
-        const existingData = JSON.parse(localStorage.getItem('failed_api_calls') || '[]');
-        existingData.push(gameData);
-        
-        // Сохраняем только последние 50 записей
-        if (existingData.length > 50) {
-            existingData.splice(0, existingData.length - 50);
-        }
-        
-        localStorage.setItem('failed_api_calls', JSON.stringify(existingData));
-        
-        console.log('Saved to localStorage:', gameData);
-        console.log('Total failed calls:', existingData.length);
-        
-        // Показываем уведомление пользователю
-        this.showFallbackNotification();
-    }
-    
-    // Обработка успешного API ответа
-    handleAPISuccess(data) {
-        console.log('API success, updating balance...');
-        
-        // Обновляем баланс в интерфейсе после успешного API запроса
-        if (data && data.balance !== undefined) {
-            this.balance = parseFloat(data.balance);
-            $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
-            console.log('Balance updated from API:', this.balance);
-        }
-        
-        // Отправляем сообщение родительскому окну об обновлении баланса
-        if (window.parent && window.parent !== window) {
-            window.parent.postMessage({
-                type: 'balanceUpdated',
-                balance: this.balance,
-                userId: window.GAME_CONFIG.user_id
-            }, '*');
-        }
-    }
-    
-    // Показ уведомления о fallback
-    showFallbackNotification() {
-        // Создаем простое уведомление
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #ffc107;
-            color: #000;
-            padding: 15px;
-            border-radius: 5px;
-            z-index: 10000;
-            max-width: 300px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        `;
-        notification.innerHTML = `
-            <strong>⚠️ API недоступен</strong><br>
-            Данные сохранены локально.<br>
-            <small>Попробуйте позже или обратитесь к администратору.</small>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Убираем уведомление через 5 секунд
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
+        })
+        .then(response => {
+            console.log('API response status:', response.status);
+            console.log('API response:', response);
+            if (!response.ok) {
+                throw new Error('API response was not ok: ' + response.status);
             }
-        }, 5000);
+            return response.json();
+        })
+        .then(data => {
+            console.log('API response data:', data);
+            
+            // Обновляем баланс в интерфейсе после успешного API запроса
+            if (data && data.balance !== undefined) {
+                this.balance = parseFloat(data.balance);
+                $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+                console.log('Balance updated from API:', this.balance);
+            }
+            
+            // Отправляем сообщение родительскому окну об обновлении баланса
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'balanceUpdated',
+                    balance: this.balance,
+                    userId: window.GAME_CONFIG.user_id
+                }, '*');
+            }
+        })
+        .catch(error => {
+            console.error('Failed to send game result to API:', error);
+            
+            // Проверяем тип ошибки
+            if (error.message.includes('Load failed') || error.message.includes('CORS')) {
+                console.error('CORS or network error - check API server configuration');
+            } else if (error.message.includes('401')) {
+                console.error('Authentication error - access token may be invalid or expired');
+            } else {
+                console.error('Unknown error:', error.message);
+            }
+            
+            // Можно добавить уведомление об ошибке
+        });
+        
+        console.log('=== API CALL END ===');
     }
 }
 
