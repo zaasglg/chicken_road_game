@@ -160,6 +160,9 @@ class Game{
             
             // Обновляем значения кнопок MIN/MAX
             this.updateMinMaxButtons();
+            
+            // Обновляем быстрые ставки для демо режима
+            this.updateQuickBets('USD');
         }
     }
     
@@ -190,6 +193,59 @@ class Game{
         };
         
         return betConfigs[country] || betConfigs['default'];
+    }
+    
+    // Метод для обновления быстрых ставок
+    updateQuickBets(currency) {
+        var country = window.GAME_CONFIG ? window.GAME_CONFIG.user_country : 'default';
+        var betConfig = this.getBetConfigForCountry(country);
+        var quickBets = betConfig.quick_bets;
+        
+        console.log('Updating quick bets for country:', country, 'currency:', currency, 'bets:', quickBets);
+        
+        // Обновляем быстрые ставки в интерфейсе
+        $('.basic_radio').empty();
+        
+        quickBets.forEach((betValue, index) => {
+            var formattedValue = this.formatBetValue(betValue, currency);
+            var quickBetHtml = `
+                <label class="gray_input">
+                    <input type="radio" name="bet_value" value="${betValue}" autocomplete="off" ${index === 0 ? 'checked' : ''}>
+                    <span>${formattedValue}</span>
+                    <svg width="18" height="18" viewBox="0 0 18 18" style="fill: rgb(255, 255, 255);">
+                        <use xlink:href="./res/img/currency.svg#${currency}"></use>
+                    </svg>
+                </label>
+            `;
+            $('.basic_radio').append(quickBetHtml);
+        });
+        
+        // Переустанавливаем обработчики событий для новых быстрых ставок
+        this.bindQuickBetHandlers();
+        
+        console.log('Quick bets updated successfully');
+    }
+    
+    // Метод для форматирования значения ставки
+    formatBetValue(value, currency) {
+        if (currency === 'USD') {
+            return value.toFixed(2);
+        } else {
+            return value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        }
+    }
+    
+    // Метод для установки обработчиков быстрых ставок
+    bindQuickBetHandlers() {
+        $('.basic_radio input[name="bet_value"]').off().on('change', function(){
+            if( GAME.cur_status == 'loading' ){
+                if( SETTINGS.volume.sound ){ SOUNDS.button.play(); } 
+                var $self=$(this); 
+                var $val = parseFloat($self.val());
+                $('#bet_size').val( $val );
+                console.log('Quick bet selected:', $val);
+            }
+        });
     }
     
     // Метод для обновления кнопок MIN/MAX
@@ -1249,11 +1305,16 @@ class Game{
                         
                         // Обновляем отображение валюты в интерфейсе
                         $('[data-rel="menu-balance"]').attr('data-currency', data.country_info.currency);
+                        
+                        // Обновляем SVG символы валюты
+                        $('svg use').attr('xlink:href', './res/img/currency.svg#' + data.country_info.currency);
+                        console.log('Currency SVG updated to:', data.country_info.currency);
                     }
                     
                     // Обновляем настройки игры с новыми данными
                     this.updateSettingsFromConfig();
                     this.updateMinMaxButtons();
+                    this.updateQuickBets(data.country_info.currency);
                     
                     console.log('Game config updated from API:', window.GAME_CONFIG);
                 }
