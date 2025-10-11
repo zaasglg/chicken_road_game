@@ -116,7 +116,13 @@ class Game{
         // Получаем актуальную информацию о пользователе при инициализации
         if (window.ACCESS_TOKEN) {
             console.log('Fetching user info on game initialization...');
-            this.fetchUserInfo();
+            this.fetchUserInfo().then(userInfo => {
+                if (!userInfo) {
+                    console.log('Failed to fetch user info - falling back to demo mode');
+                    // Fallback к демо режиму если API недоступен
+                    this.updateSettingsFromConfig();
+                }
+            });
         } else {
             console.log('No access token - using demo mode');
             // Демо режим - используем дефолтные настройки
@@ -1193,10 +1199,20 @@ class Game{
         }
         
         try {
-            const response = await fetch('https://api.valor-games.co/api/user/info', {
+            // Пробуем сначала с слэшем в конце
+            let response = await fetch('https://api.valor-games.co/api/user/info/', {
                 method: 'GET',
                 headers: headers
             });
+            
+            // Если получили редирект, попробуем без слэша
+            if (response.status === 301 || response.status === 302) {
+                console.log('Got redirect, trying without trailing slash...');
+                response = await fetch('https://api.valor-games.co/api/user/info', {
+                    method: 'GET',
+                    headers: headers
+                });
+            }
         
         if (!response.ok) {
                 throw new Error('API response was not ok: ' + response.status);
@@ -1250,6 +1266,14 @@ class Game{
             
         } catch (error) {
             console.error('Failed to fetch user info:', error);
+            
+            // Если CORS ошибка, попробуем альтернативный подход
+            if (error.message.includes('CORS') || error.message.includes('Load failed')) {
+                console.log('CORS error detected, trying alternative approach...');
+                // Можно попробовать использовать JSONP или другой метод
+                return null;
+            }
+            
             return null;
         }
     }
