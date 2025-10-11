@@ -533,6 +533,11 @@ class Game{
         // this.move(); 
     } 
     finish( $win ){
+        console.log('=== FINISH FUNCTION CALLED ===');
+        console.log('Win result:', $win);
+        console.log('Current bet:', this.current_bet);
+        console.log('Balance before:', this.balance);
+        
         $('#overlay').show(); 
         this.cur_status = "finish"; 
         this.alife = 0; 
@@ -568,12 +573,28 @@ class Game{
         }
         
         // Сохраняем результат игры в базе данных только один раз
-        if (!this.game_result_saved && window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
+        console.log('Game result saved flag:', this.game_result_saved);
+        console.log('GAME_CONFIG:', window.GAME_CONFIG);
+        console.log('Is real mode:', window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode);
+        
+        // Всегда отправляем API запрос, если есть access_token
+        if (!this.game_result_saved && window.ACCESS_TOKEN) {
+            console.log('Sending API request...');
+            this.game_result_saved = true;
+            
+            // Отправляем напрямую в API
+            console.log('Calling sendGameResultToAPI...');
+            this.sendGameResultToAPI($win, this.current_bet, $award, this.balance);
+        } else if (!this.game_result_saved && window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
+            console.log('Saving game result...');
             this.game_result_saved = true;
             saveGameResult($win ? 'win' : 'lose', this.current_bet, $award, this.balance);
             
             // Также отправляем напрямую в API
+            console.log('Calling sendGameResultToAPI...');
             this.sendGameResultToAPI($win, this.current_bet, $award, this.balance);
+        } else {
+            console.log('Skipping game result save - already saved or no access token');
         }
         
         setTimeout(
