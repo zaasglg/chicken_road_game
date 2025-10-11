@@ -746,6 +746,9 @@ class Game{
             console.log('Skipping game result save - already saved or no access token');
         }
         
+        // Сбрасываем флаг сразу после обработки результата игры
+        this.game_result_saved = false;
+        
         setTimeout(
             function(){ 
                 $('#overlay').hide(); 
@@ -753,7 +756,7 @@ class Game{
                 // Принудительно обновляем баланс после завершения игры
                 $('[data-rel="menu-balance"] span').html( GAME.balance.toFixed(2) );
                 GAME.cur_status = "loading"; 
-                GAME.game_result_saved = false; // Сбрасываем флаг для новой игры
+                // Флаг уже сброшен выше
                 
                 // Получаем актуальную информацию о пользователе после завершения игры
                 if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
@@ -934,7 +937,7 @@ class Game{
                 break;  
         } 
         // Обновляем отображение баланса только если игра не в состоянии финиша
-        if( this.cur_status !== 'finish' ){
+        if( this.cur_status !== 'finish' && this.balance !== undefined && this.balance !== null ){
             $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
         } 
 
