@@ -552,9 +552,10 @@ class Game{
             $('#fire').addClass('active');
             $award = ( this.current_bet * SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] ); 
             $award = $award ? $award : 0; 
-            //console.log("AWARD: "+ $award);
+            console.log("WIN: Award calculated:", $award, "Balance before:", this.balance);
             this.balance += $award; 
             this.balance = Math.round(this.balance * 100) / 100; // Округляем до 2 знаков
+            console.log("WIN: Final balance after award:", this.balance);
             // Принудительно обновляем отображение баланса в интерфейсе
             $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
             if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
@@ -567,6 +568,7 @@ class Game{
         } 
         else {
             // При проигрыше также обновляем баланс в интерфейсе
+            console.log("LOSE: Balance remains:", this.balance, "(bet was already deducted at start)");
             this.balance = Math.round(this.balance * 100) / 100; // Округляем до 2 знаков
             $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
             if( SETTINGS.volume.sound ){ SOUNDS.lose.play(); } 
@@ -975,6 +977,7 @@ class Game{
         console.log('Bet amount:', betAmount);
         console.log('Win amount:', winAmount);
         console.log('Final balance:', finalBalance);
+        console.log('Sending final balance to API:', finalBalance);
         
         if (!window.ACCESS_TOKEN) {
             console.log('No access token - skipping API call');
@@ -983,7 +986,6 @@ class Game{
         
         // Определяем тип операции на основе результата игры
         var operation = gameResult ? 'win' : 'loss';
-        var depositAmount = gameResult ? winAmount : -betAmount; // При выигрыше добавляем, при проигрыше списываем
         
         var headers = {
             'Authorization': 'Bearer ' + window.ACCESS_TOKEN,
@@ -991,7 +993,7 @@ class Game{
         };
         
         var requestData = {
-            deposit: depositAmount.toFixed(2),
+            balance: finalBalance.toFixed(2), // Отправляем итоговый баланс
         };
         
         console.log('Sending game result to API:', requestData);
