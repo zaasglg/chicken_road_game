@@ -1259,12 +1259,18 @@ class Game {
             $award = $award ? $award : 0; 
             //console.log("AWARD: "+ $award);
             this.balance += $award; 
+            this.balance = Math.round(this.balance * 100) / 100; // Округляем до 2 знаков
+            // Принудительно обновляем отображение баланса в интерфейсе
+            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
             if( SETTINGS.volume.active ){ SOUNDS.win.play(); } 
             $('#win_modal').css('display', 'flex');
             $('#win_modal h3').html( 'x'+ SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] );
             $('#win_modal h4 span').html( $award.toFixed(2) );
         } 
         else {
+            // При проигрыше также обновляем баланс в интерфейсе
+            this.balance = Math.round(this.balance * 100) / 100; // Округляем до 2 знаков
+            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
             if( SETTINGS.volume.active ){ SOUNDS.lose.play(); } 
         }
         
@@ -1316,7 +1322,22 @@ class Game {
         })
         .then(data => {
             console.log('API response:', data);
-            // Можно добавить уведомление пользователю об успешном сохранении
+            
+            // Обновляем баланс в интерфейсе после успешного API запроса
+            if (data && data.balance !== undefined) {
+                this.balance = parseFloat(data.balance);
+                $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+                console.log('Balance updated from API:', this.balance);
+            }
+            
+            // Отправляем сообщение родительскому окну об обновлении баланса
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'balanceUpdated',
+                    balance: this.balance,
+                    userId: window.GAME_CONFIG.user_id
+                }, '*');
+            }
         })
         .catch(error => {
             console.error('Failed to send game result to API:', error);

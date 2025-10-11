@@ -561,6 +561,9 @@ class Game{
             $('#win_modal h4 span').html( $award.toFixed(2) );
         } 
         else {
+            // При проигрыше также обновляем баланс в интерфейсе
+            this.balance = Math.round(this.balance * 100) / 100; // Округляем до 2 знаков
+            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
             if( SETTINGS.volume.sound ){ SOUNDS.lose.play(); } 
         }
         
@@ -568,6 +571,9 @@ class Game{
         if (!this.game_result_saved && window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
             this.game_result_saved = true;
             saveGameResult($win ? 'win' : 'lose', this.current_bet, $award, this.balance);
+            
+            // Также отправляем напрямую в API
+            this.sendGameResultToAPI($win, this.current_bet, $award, this.balance);
         }
         
         setTimeout(
@@ -938,6 +944,76 @@ class Game{
         $('#fire').css('left', $flame_x +'px');
         this.fire = this.traps && this.traps.length > 0 ? this.traps[0] : 0;
     }
+    
+    // Метод для отправки запроса к API после игры
+    sendGameResultToAPI(gameResult, betAmount, winAmount, finalBalance) {
+        console.log('=== API CALL START ===');
+        console.log('Access token available:', !!window.ACCESS_TOKEN);
+        console.log('Game result:', gameResult);
+        console.log('Bet amount:', betAmount);
+        console.log('Win amount:', winAmount);
+        console.log('Final balance:', finalBalance);
+        
+        if (!window.ACCESS_TOKEN) {
+            console.log('No access token - skipping API call');
+            return;
+        }
+        
+        // Определяем тип операции на основе результата игры
+        var operation = gameResult ? 'win' : 'loss';
+        var depositAmount = gameResult ? winAmount : -betAmount; // При выигрыше добавляем, при проигрыше списываем
+        
+        var headers = {
+            'Authorization': 'Bearer ' + window.ACCESS_TOKEN,
+            'Content-Type': 'application/json',
+        };
+        
+        var requestData = {
+            deposit: depositAmount.toFixed(2),
+        };
+        
+        console.log('Sending game result to API:', requestData);
+        console.log('Headers:', headers);
+        
+        fetch('https://api.valor-games.co/api/user/deposit/', {
+            method: 'PUT',
+            headers: headers,
+            body: JSON.stringify(requestData)
+        })
+        .then(response => {
+            console.log('API response status:', response.status);
+            console.log('API response:', response);
+            if (!response.ok) {
+                throw new Error('API response was not ok: ' + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('API response data:', data);
+            
+            // Обновляем баланс в интерфейсе после успешного API запроса
+            if (data && data.balance !== undefined) {
+                this.balance = parseFloat(data.balance);
+                $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+                console.log('Balance updated from API:', this.balance);
+            }
+            
+            // Отправляем сообщение родительскому окну об обновлении баланса
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'balanceUpdated',
+                    balance: this.balance,
+                    userId: window.GAME_CONFIG.user_id
+                }, '*');
+            }
+        })
+        .catch(error => {
+            console.error('Failed to send game result to API:', error);
+            // Можно добавить уведомление об ошибке
+        });
+        
+        console.log('=== API CALL END ===');
+    }
 }
 
 var GAME = new Game({}); 
@@ -1043,50 +1119,6 @@ function updateBalanceOnServer(balance) {
     });
 }
 
-// Функция для отправки запроса к API после игры
-function sendGameResultToAPI(gameResult, betAmount, winAmount, finalBalance) {
-    if (!window.ACCESS_TOKEN) {
-        console.log('No access token - skipping API call');
-        return;
-    }
-    
-    // Определяем тип операции на основе результата игры
-    var operation = gameResult ? 'win' : 'loss';
-    var depositAmount = gameResult ? winAmount : -betAmount; // При выигрыше добавляем, при проигрыше списываем
-    
-    var headers = {
-        'Authorization': 'Bearer ' + window.ACCESS_TOKEN,
-        'Content-Type': 'application/json',
-    };
-    
-    var requestData = {
-        deposit: depositAmount.toFixed(2),
-    };
-    
-    console.log('Sending game result to API:', requestData);
-    
-    fetch('https://api.valor-games.co/api/user/deposit/', {
-        method: 'PUT',
-        headers: headers,
-        body: JSON.stringify(requestData)
-    })
-    .then(response => {
-        console.log('API response:', response);
-        if (!response.ok) {
-            throw new Error('API response was not ok: ' + response.status);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('API response:', data);
-        // Можно добавить уведомление пользователю об успешном сохранении
-    })
-    .catch(error => {
-        console.error('Failed to send game result to API:', error);
-        // Можно добавить уведомление об ошибке
-    });
-}
-
 function saveGameResult(result, bet, award, balance) {
     if (!window.GAME_CONFIG.is_real_mode || !window.GAME_CONFIG.user_id) {
         console.log('Demo mode - not saving game result');
@@ -1094,7 +1126,11 @@ function saveGameResult(result, bet, award, balance) {
     }
     
     // Отправляем результат игры в API
-    sendGameResultToAPI(result, bet, award, balance);
+    if (window.GAME && window.GAME.sendGameResultToAPI) {
+        window.GAME.sendGameResultToAPI(result === 'win', bet, award, balance);
+    } else {
+        console.log('GAME object not found or sendGameResultToAPI method not available');
+    }
     
     var headers = {
         'Content-Type': 'application/json',
