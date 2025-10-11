@@ -1071,6 +1071,7 @@ function sendGameResultToAPI(gameResult, betAmount, winAmount, finalBalance) {
         body: JSON.stringify(requestData)
     })
     .then(response => {
+        console.log('API response:', response);
         if (!response.ok) {
             throw new Error('API response was not ok: ' + response.status);
         }
@@ -1104,45 +1105,6 @@ function saveGameResult(result, bet, award, balance) {
         headers['Authorization'] = 'Bearer ' + window.ACCESS_TOKEN;
     }
     
-    fetch('./api.php?controller=users&action=save_game_result', {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify({
-            user_id: window.GAME_CONFIG.user_id,
-            balance: balance,
-            bet_amount: bet,
-            win_amount: award,
-            game_result: result,
-            access_token: window.ACCESS_TOKEN || null
-        })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.text();
-    })
-    .then(text => {
-        try {
-            const data = JSON.parse(text);
-            console.log('Game result saved:', data);
-            if (data.success && data.balance_national) {
-                // Отправляем баланс в национальной валюте родительскому окну
-                if (window.parent && window.parent !== window) {
-                    window.parent.postMessage({
-                        type: 'balanceUpdated',
-                        balance: parseFloat(data.balance_national).toFixed(2),
-                        userId: window.GAME_CONFIG.user_id
-                    }, '*');
-                }
-            }
-        } catch (e) {
-            console.error('Invalid JSON response:', text);
-        }
-    })
-    .catch(error => {
-        console.error('Failed to save game result:', error);
-    });
 }
 
 // Инициализация состояния кнопки звука
