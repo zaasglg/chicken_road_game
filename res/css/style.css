@@ -146,4 +146,13 @@ footer#footer{ flex-grow:0; flex-shrink:0; background:var(--footer-bg); display:
 @media ( max-width:700px ){
     #game_container{ min-height:500px; } 
     #dificulity h2{ display:none; }
+    #logo{ width: 180px; } /* Уменьшаем логотип на мобильных */
+}
+
+@media ( max-width:480px ){
+    #logo{ width: 140px; } /* Еще больше уменьшаем на маленьких экранах */
+}
+
+@media ( max-width:360px ){
+    #logo{ width: 120px; } /* Минимальный размер для очень маленьких экранов */
 }
