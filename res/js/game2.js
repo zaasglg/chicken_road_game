@@ -184,33 +184,38 @@ class Game{
     
     // Метод для обновления кнопок MIN/MAX
     updateMinMaxButtons() {
-        if (window.GAME_CONFIG) {
-            var minBet = window.GAME_CONFIG.min_bet || 0.5;
-            var maxBet = window.GAME_CONFIG.max_bet || 150;
-            
-            // Обновляем обработчики кнопок с новыми значениями
-            $('.bet_value_wrapper button[data-rel="min"]').off('click').on('click', function() {
-                if (GAME.cur_status == 'loading') {
-                    if (SETTINGS.volume.sound) SOUNDS.button.play();
-                    $('#bet_size').val(minBet);
-                    console.log('MIN button clicked, setting bet to:', minBet);
-                }
-            });
-            
-            $('.bet_value_wrapper button[data-rel="max"]').off('click').on('click', function() {
-                if (GAME.cur_status == 'loading') {
-                    if (SETTINGS.volume.sound) SOUNDS.button.play();
-                    var finalMaxBet = Math.min(maxBet, GAME.balance);
-                    $('#bet_size').val(finalMaxBet);
-                    console.log('MAX button clicked, setting bet to:', finalMaxBet);
-                }
-            });
-            
-            console.log('Min/Max buttons updated for country:', window.GAME_CONFIG.user_country, {
-                min: minBet,
-                max: maxBet
-            });
-        }
+        // Получаем значения из data-атрибутов HTML
+        var minBet = parseFloat($('#bet_size').data('min-bet')) || 0.5;
+        var maxBet = parseFloat($('#bet_size').data('max-bet')) || 150;
+        var defaultBet = parseFloat($('#bet_size').data('default-bet')) || minBet;
+        
+        // Обновляем поле ввода ставки правильным значением по умолчанию
+        $('#bet_size').val(defaultBet);
+        
+        // Обновляем обработчики кнопок с новыми значениями
+        $('.bet_value_wrapper button[data-rel="min"]').off('click').on('click', function() {
+            if (GAME.cur_status == 'loading') {
+                if (SETTINGS.volume.sound) SOUNDS.button.play();
+                $('#bet_size').val(minBet);
+                console.log('MIN button clicked, setting bet to:', minBet);
+            }
+        });
+        
+        $('.bet_value_wrapper button[data-rel="max"]').off('click').on('click', function() {
+            if (GAME.cur_status == 'loading') {
+                if (SETTINGS.volume.sound) SOUNDS.button.play();
+                var finalMaxBet = Math.min(maxBet, GAME.balance);
+                $('#bet_size').val(finalMaxBet);
+                console.log('MAX button clicked, setting bet to:', finalMaxBet);
+            }
+        });
+        
+        console.log('Min/Max buttons updated with values from HTML:', {
+            min: minBet,
+            max: maxBet,
+            default: defaultBet,
+            country: window.GAME_CONFIG ? window.GAME_CONFIG.user_country : 'unknown'
+        });
     } 
     // Генерируем локальные трапы на основе коэффициентов
     generateLocalTraps() {
@@ -903,10 +908,8 @@ class Game{
                 if( GAME.cur_status == 'loading' ){
                     var $self=$(this); 
                     var $val= +$self.val(); 
-                    var minBet = window.GAME_CONFIG ? window.GAME_CONFIG.min_bet : SETTINGS.min_bet;
-                    var maxBet = window.GAME_CONFIG ? window.GAME_CONFIG.max_bet : SETTINGS.max_bet;
-                    minBet = isNaN(minBet) ? 0.5 : minBet;
-                    maxBet = isNaN(maxBet) ? 150 : maxBet;
+                    var minBet = parseFloat($self.data('min-bet')) || 0.5;
+                    var maxBet = parseFloat($self.data('max-bet')) || 150;
                     $val = $val < minBet ? minBet : ( $val > maxBet ? maxBet : $val ); 
                     $val = $val > GAME.balance ? GAME.balance : $val; 
                     $self.val( $val ); 

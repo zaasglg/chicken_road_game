@@ -15,6 +15,9 @@ $default_bet = $bet_config['default_bet'];
 $min_bet = is_numeric($min_bet) ? $min_bet : 0.5;
 $max_bet = is_numeric($max_bet) ? $max_bet : 150;
 $default_bet = is_numeric($default_bet) ? $default_bet : $min_bet;
+
+// Отладочная информация
+error_log("Bet config for country '$user_country': min=$min_bet, max=$max_bet, default=$default_bet");
 ?>
 
 <div id="main_wrapper">
@@ -53,7 +56,7 @@ $default_bet = is_numeric($default_bet) ? $default_bet : $min_bet;
             <section id="values">
                 <div class="bet_value_wrapper gray_input">
                     <button class="" data-rel="min"><?= TEXT_BETS_WRAPPER_MIN; ?></button>
-                    <input type="text" value="<?= $default_bet; ?>" id="bet_size">
+                    <input type="text" value="<?= $default_bet; ?>" id="bet_size" data-default-bet="<?= $default_bet; ?>" data-min-bet="<?= $min_bet; ?>" data-max-bet="<?= $max_bet; ?>">
                     <button class="" data-rel="max"><?= TEXT_BETS_WRAPPER_MAX; ?></button>
                 </div>
                 <div class="basic_radio">
