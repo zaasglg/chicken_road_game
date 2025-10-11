@@ -1087,6 +1087,17 @@ class Game{
             this.balance = parseFloat(data.balance);
             $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
             console.log('Balance updated from API:', this.balance);
+        } else if (data && data.new_deposit !== undefined) {
+            // Используем new_deposit из API ответа
+            this.balance = parseFloat(data.new_deposit);
+            $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+            console.log('Balance updated from API new_deposit:', this.balance);
+            
+            // Проверяем, действительно ли API обновил баланс
+            if (data.old_deposit === data.new_deposit) {
+                console.warn('WARNING: API did not update balance! old_deposit === new_deposit:', data.old_deposit);
+                console.warn('Using local balance instead:', this.balance);
+            }
         } else {
             console.log('No balance field in API response, keeping current balance:', this.balance);
             // Принудительно обновляем отображение баланса в интерфейсе
