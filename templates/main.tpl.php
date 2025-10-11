@@ -10,6 +10,11 @@ $quick_bets = $bet_config['quick_bets'];
 $min_bet = $bet_config['min_bet'];
 $max_bet = $bet_config['max_bet'];
 $default_bet = $bet_config['default_bet'];
+
+// Убеждаемся, что значения корректны
+$min_bet = is_numeric($min_bet) ? $min_bet : 0.5;
+$max_bet = is_numeric($max_bet) ? $max_bet : 150;
+$default_bet = is_numeric($default_bet) ? $default_bet : $min_bet;
 ?>
 
 <div id="main_wrapper">

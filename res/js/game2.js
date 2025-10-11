@@ -171,8 +171,11 @@ class Game{
             console.log('Settings updated from config:', {
                 min_bet: SETTINGS.min_bet,
                 max_bet: SETTINGS.max_bet,
-                currency: SETTINGS.currency
+                currency: SETTINGS.currency,
+                game_config: window.GAME_CONFIG
             });
+        } else {
+            console.log('GAME_CONFIG not available, using default values');
         }
     } 
     // Генерируем локальные трапы на основе коэффициентов
@@ -868,6 +871,8 @@ class Game{
                     var $val= +$self.val(); 
                     var minBet = window.GAME_CONFIG ? window.GAME_CONFIG.min_bet : SETTINGS.min_bet;
                     var maxBet = window.GAME_CONFIG ? window.GAME_CONFIG.max_bet : SETTINGS.max_bet;
+                    minBet = isNaN(minBet) ? 0.5 : minBet;
+                    maxBet = isNaN(maxBet) ? 150 : maxBet;
                     $val = $val < minBet ? minBet : ( $val > maxBet ? maxBet : $val ); 
                     $val = $val > GAME.balance ? GAME.balance : $val; 
                     $self.val( $val ); 
@@ -882,11 +887,16 @@ class Game{
                     switch( $rel ){
                         case "min": 
                             var minBet = window.GAME_CONFIG ? window.GAME_CONFIG.min_bet : SETTINGS.min_bet;
+                            minBet = isNaN(minBet) ? 0.5 : minBet;
                             $('#bet_size').val( minBet );
+                            console.log('MIN button clicked, setting bet to:', minBet);
                             break; 
                         case "max": 
                             var maxBet = window.GAME_CONFIG ? window.GAME_CONFIG.max_bet : SETTINGS.max_bet;
-                            $('#bet_size').val( Math.min(maxBet, GAME.balance) );
+                            maxBet = isNaN(maxBet) ? 150 : maxBet;
+                            var finalMaxBet = Math.min(maxBet, GAME.balance);
+                            $('#bet_size').val( finalMaxBet );
+                            console.log('MAX button clicked, setting bet to:', finalMaxBet);
                             break; 
                     }
                 }
