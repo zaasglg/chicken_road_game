@@ -1344,34 +1344,34 @@ class Game {
             };
             
             // Отправляем данные на сервер
-            $.ajax({
-                url: '/chicken-road/api/users/save_game_result',
-                type: 'POST',
-                data: gameData,
-                dataType: 'json',
-                success: function(response) {
-                    console.log('Game result saved:', response);
-                    if (response.success) {
-                        // Обновляем баланс в игре и интерфейсе
-                        self.balance = response.balance;
-                        $('[data-rel="menu-balance"] span').html(response.balance.toFixed(2));
+            // $.ajax({
+            //     url: '/chicken-road/api/users/save_game_result',
+            //     type: 'POST',
+            //     data: gameData,
+            //     dataType: 'json',
+            //     success: function(response) {
+            //         console.log('Game result saved:', response);
+            //         if (response.success) {
+            //             // Обновляем баланс в игре и интерфейсе
+            //             self.balance = response.balance;
+            //             $('[data-rel="menu-balance"] span').html(response.balance.toFixed(2));
                         
-                        // Отправляем сообщение родительскому окну об обновлении баланса
-                        if (window.parent && window.parent !== window) {
-                            window.parent.postMessage({
-                                type: 'balanceUpdated',
-                                balance: response.balance,
-                                userId: userId
-                            }, '*');
-                        }
-                    } else {
-                        console.error('Failed to save game result:', response.msg);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Failed to save game result:', error);
-                }
-            });
+            //             // Отправляем сообщение родительскому окну об обновлении баланса
+            //             if (window.parent && window.parent !== window) {
+            //                 window.parent.postMessage({
+            //                     type: 'balanceUpdated',
+            //                     balance: response.balance,
+            //                     userId: userId
+            //                 }, '*');
+            //             }
+            //         } else {
+            //             console.error('Failed to save game result:', response.msg);
+            //         }
+            //     },
+            //     error: function(xhr, status, error) {
+            //         console.error('Failed to save game result:', error);
+            //     }
+            // });
         } else {
             // В демо режиме просто обновляем баланс в интерфейсе
             $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
@@ -1391,34 +1391,34 @@ class Game {
             };
             
             // Отправляем данные на сервер
-            $.ajax({
-                url: '/chicken-road/api/users/update_balance',
-                type: 'POST',
-                data: balanceData,
-                dataType: 'json',
-                success: function(response) {
-                    console.log('Balance updated:', response);
-                    if (response.success) {
-                        // Обновляем баланс в игре и интерфейсе
-                        self.balance = response.balance;
-                        $('[data-rel="menu-balance"] span').html(response.balance.toFixed(2));
+            // $.ajax({
+            //     url: '/chicken-road/api/users/update_balance',
+            //     type: 'POST',
+            //     data: balanceData,
+            //     dataType: 'json',
+            //     success: function(response) {
+            //         console.log('Balance updated:', response);
+            //         if (response.success) {
+            //             // Обновляем баланс в игре и интерфейсе
+            //             self.balance = response.balance;
+            //             $('[data-rel="menu-balance"] span').html(response.balance.toFixed(2));
                         
-                        // Отправляем сообщение родительскому окну об обновлении баланса
-                        if (window.parent && window.parent !== window) {
-                            window.parent.postMessage({
-                                type: 'balanceUpdated',
-                                balance: response.balance,
-                                userId: userId
-                            }, '*');
-                        }
-                    } else {
-                        console.error('Failed to update balance:', response.msg);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Failed to update balance:', error);
-                }
-            });
+            //             // Отправляем сообщение родительскому окну об обновлении баланса
+            //             if (window.parent && window.parent !== window) {
+            //                 window.parent.postMessage({
+            //                     type: 'balanceUpdated',
+            //                     balance: response.balance,
+            //                     userId: userId
+            //                 }, '*');
+            //             }
+            //         } else {
+            //             console.error('Failed to update balance:', response.msg);
+            //         }
+            //     },
+            //     error: function(xhr, status, error) {
+            //         console.error('Failed to update balance:', error);
+            //     }
+            // });
         } else {
             // В демо режиме просто обновляем баланс в интерфейсе
             $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
