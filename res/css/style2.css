@@ -70,6 +70,19 @@
     #battlefield .sector .cup{ width: 30%; bottom: 30px; }
 }
 
+/* Изменяем позицию курицы для мобильных версий */
+@media (max-width:700px){
+    #chick .inner{ bottom: -170px; } /* Поднимаем курицу выше на мобильных */
+}
+
+@media (max-width:480px){
+    #chick .inner{ bottom: -170px; } /* Поднимаем курицу выше на маленьких экранах */
+}
+
+@media (max-width:360px){
+    #chick .inner{ bottom: -170px; } /* Поднимаем курицу выше на очень маленьких экранах */
+}
+
 
 
 #main_wrapper{ background:#394265; }
