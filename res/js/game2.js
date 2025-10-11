@@ -160,15 +160,27 @@ class Game{
         this.create(); 
         this.bind(); 
         $('#game_container').css('min-height', parseInt( $('#main').css('height') )+'px' );
+        
+        // Получаем актуальную информацию о пользователе при инициализации
+        if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
+            console.log('Fetching user info on game initialization...');
+            this.fetchUserInfo();
+        }
     }
     
     // Метод для обновления настроек из конфигурации
     updateSettingsFromConfig() {
         if (window.GAME_CONFIG) {
-            SETTINGS.min_bet = window.GAME_CONFIG.min_bet || 0.5;
-            SETTINGS.max_bet = window.GAME_CONFIG.max_bet || 150;
-            SETTINGS.currency = window.GAME_CONFIG.currency_symbol || 'USD';
+            // Получаем настройки ставок для страны из API
+            var country = window.GAME_CONFIG.user_country || 'default';
+            var betConfig = this.getBetConfigForCountry(country);
+            
+            SETTINGS.min_bet = betConfig.min_bet;
+            SETTINGS.max_bet = betConfig.max_bet;
+            SETTINGS.currency = window.GAME_CONFIG.currency_symbol || betConfig.currency;
+            
             console.log('Settings updated from config:', {
+                country: country,
                 min_bet: SETTINGS.min_bet,
                 max_bet: SETTINGS.max_bet,
                 currency: SETTINGS.currency,
@@ -182,12 +194,49 @@ class Game{
         }
     }
     
+    // Метод для получения конфигурации ставок для страны
+    getBetConfigForCountry(country) {
+        const betConfigs = {
+            'Colombia': {
+                currency: 'COP',
+                quick_bets: [2500, 5000, 10000, 35000],
+                min_bet: 1000,
+                max_bet: 700000,
+                default_bet: 2500
+            },
+            'Paraguay': {
+                currency: 'PYG',
+                quick_bets: [5000, 10000, 20000, 70000],
+                min_bet: 1000,
+                max_bet: 1500000,
+                default_bet: 5000
+            },
+            'default': {
+                currency: 'USD',
+                quick_bets: [0.5, 1, 2, 7],
+                min_bet: 0.5,
+                max_bet: 150,
+                default_bet: 0.5
+            }
+        };
+        
+        return betConfigs[country] || betConfigs['default'];
+    }
+    
     // Метод для обновления кнопок MIN/MAX
     updateMinMaxButtons() {
-        // Получаем значения из data-атрибутов HTML
-        var minBet = parseFloat($('#bet_size').data('min-bet')) || 0.5;
-        var maxBet = parseFloat($('#bet_size').data('max-bet')) || 150;
-        var defaultBet = parseFloat($('#bet_size').data('default-bet')) || minBet;
+        // Получаем значения из API или data-атрибутов HTML
+        var country = window.GAME_CONFIG ? window.GAME_CONFIG.user_country : 'default';
+        var betConfig = this.getBetConfigForCountry(country);
+        
+        var minBet = betConfig.min_bet;
+        var maxBet = betConfig.max_bet;
+        var defaultBet = betConfig.default_bet;
+        
+        // Обновляем data-атрибуты с новыми значениями
+        $('#bet_size').attr('data-min-bet', minBet);
+        $('#bet_size').attr('data-max-bet', maxBet);
+        $('#bet_size').attr('data-default-bet', defaultBet);
         
         // Обновляем поле ввода ставки правильным значением по умолчанию
         $('#bet_size').val(defaultBet);
@@ -684,6 +733,13 @@ class Game{
                 $('[data-rel="menu-balance"] span').html( GAME.balance.toFixed(2) );
                 GAME.cur_status = "loading"; 
                 GAME.game_result_saved = false; // Сбрасываем флаг для новой игры
+                
+                // Получаем актуальную информацию о пользователе после завершения игры
+                if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
+                    console.log('Fetching user info after game completion...');
+                    GAME.fetchUserInfo();
+                }
+                
                 GAME.create();  
             }, $win ? 5000 : 3000  
         ); 
@@ -926,8 +982,10 @@ class Game{
                 if( GAME.cur_status == 'loading' ){
                     var $self=$(this); 
                     var $val= +$self.val(); 
-                    var minBet = parseFloat($self.data('min-bet')) || 0.5;
-                    var maxBet = parseFloat($self.data('max-bet')) || 150;
+                    var country = window.GAME_CONFIG ? window.GAME_CONFIG.user_country : 'default';
+                    var betConfig = GAME.getBetConfigForCountry(country);
+                    var minBet = betConfig.min_bet;
+                    var maxBet = betConfig.max_bet;
                     $val = $val < minBet ? minBet : ( $val > maxBet ? maxBet : $val ); 
                     $val = $val > GAME.balance ? GAME.balance : $val; 
                     $self.val( $val ); 
@@ -1105,16 +1163,35 @@ class Game{
             console.log('Balance display updated to:', this.balance.toFixed(2));
         }
         
-        // Отправляем сообщение родительскому окну об обновлении баланса
-        if (window.parent && window.parent !== window) {
-            window.parent.postMessage({
-                type: 'balanceUpdated',
-                balance: this.balance,
-                userId: window.GAME_CONFIG.user_id
-            }, '*');
+        // Получаем актуальную информацию о пользователе после игры
+        if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
+            console.log('Fetching updated user info after game...');
+            this.fetchUserInfo().then(userInfo => {
+                if (userInfo) {
+                    console.log('User info updated successfully:', userInfo);
+                    
+                    // Отправляем сообщение родительскому окну об обновлении баланса
+                    if (window.parent && window.parent !== window) {
+                        window.parent.postMessage({
+                            type: 'balanceUpdated',
+                            balance: this.balance,
+                            userId: userInfo.user_id
+                        }, '*');
+                    }
+                }
+            });
+                    } else {
+            // Отправляем сообщение родительскому окну об обновлении баланса
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'balanceUpdated',
+                    balance: this.balance,
+                    userId: window.GAME_CONFIG?.user_id
+                }, '*');
+            }
         }
-        })
-        .catch(error => {
+            })
+            .catch(error => {
             console.error('Failed to send game result to API:', error);
             
             // Проверяем тип ошибки
@@ -1133,6 +1210,83 @@ class Game{
         });
         
         console.log('=== API CALL END ===');
+    }
+    
+    // Метод для получения информации о пользователе и обновления баланса
+    async fetchUserInfo() {
+        if (!window.ACCESS_TOKEN) {
+            console.log('No access token - cannot fetch user info');
+            return;
+        }
+        
+        console.log('=== FETCHING USER INFO ===');
+        
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        if (window.ACCESS_TOKEN) {
+            headers['Authorization'] = 'Bearer ' + window.ACCESS_TOKEN;
+        }
+        
+        try {
+            const response = await fetch('https://api.valor-games.co/api/user/info', {
+                method: 'GET',
+                headers: headers
+            });
+        
+        if (!response.ok) {
+                throw new Error('API response was not ok: ' + response.status);
+        }
+        
+        const data = await response.json();
+            console.log('User info response:', data);
+            
+            // Обновляем баланс из API
+            if (data && data.deposit !== undefined) {
+                this.balance = parseFloat(data.deposit);
+                $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+                console.log('Balance updated from user info API:', this.balance);
+                
+                // Обновляем конфигурацию игры с данными из API
+                if (data.country) {
+                    console.log('Country from API:', data.country);
+                    
+                    // Обновляем window.GAME_CONFIG с данными из API
+                    if (!window.GAME_CONFIG) {
+                        window.GAME_CONFIG = {};
+                    }
+                    
+                    window.GAME_CONFIG.user_country = data.country;
+                    window.GAME_CONFIG.user_id = data.user_id;
+                    window.GAME_CONFIG.is_real_mode = true;
+                    
+                    // Обновляем валюту если есть country_info
+                    if (data.country_info && data.country_info.currency) {
+                        window.GAME_CONFIG.currency_symbol = data.country_info.currency;
+                        console.log('Currency updated from API:', data.country_info.currency);
+                        
+                        // Обновляем отображение валюты в интерфейсе
+                        $('[data-rel="menu-balance"]').attr('data-currency', data.country_info.currency);
+                    }
+                    
+                    // Обновляем настройки игры с новыми данными
+                    this.updateSettingsFromConfig();
+                    this.updateMinMaxButtons();
+                    
+                    console.log('Game config updated from API:', window.GAME_CONFIG);
+                }
+                
+                return data;
+            } else {
+                console.log('No deposit field in user info response');
+                return null;
+            }
+            
+        } catch (error) {
+            console.error('Failed to fetch user info:', error);
+            return null;
+        }
     }
 }
 
