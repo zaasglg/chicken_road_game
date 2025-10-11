@@ -76,6 +76,9 @@ var SOUNDS = {
 
 class Game{
     constructor( $obj ){ 
+        // Обновляем настройки из конфигурации
+        this.updateSettingsFromConfig();
+        
         // Получаем параметры из URL
         var urlParams = new URLSearchParams(window.location.search);
         var balanceParam = urlParams.get('balance');
@@ -157,6 +160,20 @@ class Game{
         this.create(); 
         this.bind(); 
         $('#game_container').css('min-height', parseInt( $('#main').css('height') )+'px' );
+    }
+    
+    // Метод для обновления настроек из конфигурации
+    updateSettingsFromConfig() {
+        if (window.GAME_CONFIG) {
+            SETTINGS.min_bet = window.GAME_CONFIG.min_bet || 0.5;
+            SETTINGS.max_bet = window.GAME_CONFIG.max_bet || 150;
+            SETTINGS.currency = window.GAME_CONFIG.currency_symbol || 'USD';
+            console.log('Settings updated from config:', {
+                min_bet: SETTINGS.min_bet,
+                max_bet: SETTINGS.max_bet,
+                currency: SETTINGS.currency
+            });
+        }
     } 
     // Генерируем локальные трапы на основе коэффициентов
     generateLocalTraps() {
@@ -849,7 +866,9 @@ class Game{
                 if( GAME.cur_status == 'loading' ){
                     var $self=$(this); 
                     var $val= +$self.val(); 
-                    $val = $val < SETTINGS.min_bet ? SETTINGS.min_bet : ( $val > SETTINGS.max_bet ? SETTINGS.max_bet : $val ); 
+                    var minBet = window.GAME_CONFIG ? window.GAME_CONFIG.min_bet : SETTINGS.min_bet;
+                    var maxBet = window.GAME_CONFIG ? window.GAME_CONFIG.max_bet : SETTINGS.max_bet;
+                    $val = $val < minBet ? minBet : ( $val > maxBet ? maxBet : $val ); 
                     $val = $val > GAME.balance ? GAME.balance : $val; 
                     $self.val( $val ); 
                 }
@@ -862,10 +881,12 @@ class Game{
                     var $rel = $self.data('rel'); 
                     switch( $rel ){
                         case "min": 
-                            $('#bet_size').val( SETTINGS.min_bet );
+                            var minBet = window.GAME_CONFIG ? window.GAME_CONFIG.min_bet : SETTINGS.min_bet;
+                            $('#bet_size').val( minBet );
                             break; 
                         case "max": 
-                            $('#bet_size').val( Math.min(SETTINGS.max_bet, GAME.balance) );
+                            var maxBet = window.GAME_CONFIG ? window.GAME_CONFIG.max_bet : SETTINGS.max_bet;
+                            $('#bet_size').val( Math.min(maxBet, GAME.balance) );
                             break; 
                     }
                 }
@@ -1007,29 +1028,29 @@ class Game{
         .then(response => {
             console.log('API response status:', response.status);
             console.log('API response:', response);
-            if (!response.ok) {
+        if (!response.ok) {
                 throw new Error('API response was not ok: ' + response.status);
             }
             return response.json();
         })
         .then(data => {
             console.log('API response data:', data);
-            
-            // Обновляем баланс в интерфейсе после успешного API запроса
-            if (data && data.balance !== undefined) {
-                this.balance = parseFloat(data.balance);
-                $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
-                console.log('Balance updated from API:', this.balance);
-            }
-            
-            // Отправляем сообщение родительскому окну об обновлении баланса
-            if (window.parent && window.parent !== window) {
-                window.parent.postMessage({
-                    type: 'balanceUpdated',
-                    balance: this.balance,
-                    userId: window.GAME_CONFIG.user_id
-                }, '*');
-            }
+        
+        // Обновляем баланс в интерфейсе после успешного API запроса
+        if (data && data.balance !== undefined) {
+            this.balance = parseFloat(data.balance);
+            $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+            console.log('Balance updated from API:', this.balance);
+        }
+        
+        // Отправляем сообщение родительскому окну об обновлении баланса
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({
+                type: 'balanceUpdated',
+                balance: this.balance,
+                userId: window.GAME_CONFIG.user_id
+            }, '*');
+        }
         })
         .catch(error => {
             console.error('Failed to send game result to API:', error);
