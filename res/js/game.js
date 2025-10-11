@@ -1299,16 +1299,11 @@ class Game {
         
         var requestData = {
             deposit: depositAmount.toFixed(2),
-            game_result: operation,
-            bet_amount: betAmount,
-            win_amount: winAmount,
-            final_balance: finalBalance,
-            user_id: window.GAME_CONFIG.user_id || null
         };
         
         console.log('Sending game result to API:', requestData);
         
-        fetch('http://api.valor-games.co/api/user/deposit/', {
+        fetch('https://api.valor-games.co/api/user/deposit/', {
             method: 'PUT',
             headers: headers,
             body: JSON.stringify(requestData)
