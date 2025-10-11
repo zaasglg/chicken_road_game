@@ -33,6 +33,43 @@
     #battlefield .sector .arc{ flex-grow: 0.2; }
 }
 
+/* Уменьшаем размер секторов для мобильных версий */
+@media (max-width:700px){
+    #battlefield .sector{ width: clamp( 80px, 15vw, 180px ); } /* Уменьшаем ширину секторов */
+    #battlefield .sector .coincontainer span{ font-size: 32px; } /* Уменьшаем размер текста коэффициентов */
+    #battlefield .sector .entry{ width: 60%; } /* Уменьшаем размер входа */
+    #battlefield .sector .frame{ width: 50%; } /* Уменьшаем размер фрейма */
+    #battlefield .sector .arc{ width: 80%; } /* Уменьшаем размер арки */
+    #battlefield .sector .breaks{ height: 50px; background-size: auto 35px; } /* Уменьшаем высоту и размер брейков */
+    #battlefield .sector .trigger{ width: 60%; bottom: 35px; } /* Уменьшаем размер триггера */
+    #battlefield .sector .flame{ width: 80%; bottom: 40px; } /* Уменьшаем размер пламени */
+    #battlefield .sector .cup{ width: 40%; bottom: 40px; } /* Уменьшаем размер чашки */
+}
+
+@media (max-width:480px){
+    #battlefield .sector{ width: clamp( 60px, 12vw, 140px ); } /* Еще больше уменьшаем на маленьких экранах */
+    #battlefield .sector .coincontainer span{ font-size: 28px; }
+    #battlefield .sector .entry{ width: 50%; }
+    #battlefield .sector .frame{ width: 40%; }
+    #battlefield .sector .arc{ width: 70%; }
+    #battlefield .sector .breaks{ height: 40px; background-size: auto 30px; }
+    #battlefield .sector .trigger{ width: 50%; bottom: 30px; }
+    #battlefield .sector .flame{ width: 70%; bottom: 35px; }
+    #battlefield .sector .cup{ width: 35%; bottom: 35px; }
+}
+
+@media (max-width:360px){
+    #battlefield .sector{ width: clamp( 50px, 10vw, 120px ); } /* Минимальный размер для очень маленьких экранов */
+    #battlefield .sector .coincontainer span{ font-size: 24px; }
+    #battlefield .sector .entry{ width: 45%; }
+    #battlefield .sector .frame{ width: 35%; }
+    #battlefield .sector .arc{ width: 60%; }
+    #battlefield .sector .breaks{ height: 35px; background-size: auto 25px; }
+    #battlefield .sector .trigger{ width: 45%; bottom: 25px; }
+    #battlefield .sector .flame{ width: 60%; bottom: 30px; }
+    #battlefield .sector .cup{ width: 30%; bottom: 30px; }
+}
+
 
 
 #main_wrapper{ background:#394265; }
