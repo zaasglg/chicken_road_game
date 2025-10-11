@@ -12,7 +12,7 @@ var SETTINGS = {
         music: +$('body').data('sound') ? 0.2 : 0, 
         sound: +$('body').data('sound') ? 0.9 : 0
     }, 
-    currency: $('body').attr('data-currency') ? $('body').attr('data-currency')  : "USD", 
+    currency: window.GAME_CONFIG ? window.GAME_CONFIG.currency_symbol : ($('body').attr('data-currency') ? $('body').attr('data-currency') : "USD"), 
     cfs: window.CFS || {
         easy: [ 1.03, 1.07, 1.12, 1.17, 1.23, 1.29, 1.36, 1.44, 1.53, 1.63, 1.75, 1.88, 2.04, 2.22, 2.45, 2.72, 3.06, 3.50, 4.08, 4.90, 6.13, 6.61, 9.81, 19.44 ], 
         medium: [ 1.12, 1.28, 1.47, 1.70, 1.98, 2.33, 2.76, 3.32, 4.03, 4.96, 6.20, 6.91, 8.90, 11.74, 15.99, 22.61, 33.58, 53.20, 92.17, 182.51, 451.71, 1788.80 ],  
@@ -25,8 +25,8 @@ var SETTINGS = {
         hard: [ 3, 10 ], 
         hardcore: [ 2, 6 ]
     },
-    min_bet: 0.5, 
-    max_bet: 150, 
+    min_bet: window.GAME_CONFIG ? window.GAME_CONFIG.min_bet : 0.5, 
+    max_bet: window.GAME_CONFIG ? window.GAME_CONFIG.max_bet : 150, 
     segw: parseInt( $('#battlefield .sector').css('width') ),
     // Локальные коэффициенты вместо WebSocket
 } 

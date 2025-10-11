@@ -1,4 +1,14 @@
 
+<?php
+// Получаем конфигурацию ставок для текущей страны
+$bet_config = getBetConfig($user_country ?? 'default');
+$currency_symbol = $bet_config['currency'];
+$quick_bets = $bet_config['quick_bets'];
+$min_bet = $bet_config['min_bet'];
+$max_bet = $bet_config['max_bet'];
+$default_bet = $bet_config['default_bet'];
+?>
+
 <div id="main_wrapper">
     <header id="header">
         <div id="logo"></div>
@@ -35,38 +45,19 @@
             <section id="values">
                 <div class="bet_value_wrapper gray_input">
                     <button class="" data-rel="min"><?= TEXT_BETS_WRAPPER_MIN; ?></button>
-                    <input type="text" value="0.5" id="bet_size">
+                    <input type="text" value="<?= $default_bet; ?>" id="bet_size">
                     <button class="" data-rel="max"><?= TEXT_BETS_WRAPPER_MAX; ?></button>
                 </div>
                 <div class="basic_radio">
+                    <?php foreach ($quick_bets as $index => $bet_value): ?>
                     <label class="gray_input">
-                        <input type="radio" name="bet_value" value="0.5" autocomplete="off">
-                        <span>0.5</span>
+                        <input type="radio" name="bet_value" value="<?= $bet_value; ?>" autocomplete="off" <?= $index === 0 ? 'checked' : ''; ?>>
+                        <span><?= number_format($bet_value, 0, '.', ' '); ?></span>
                         <svg width="18" height="18" viewBox="0 0 18 18" style="fill: rgb(255, 255, 255);">
-                            <use xlink:href="./res/img/currency.svg#USD"></use>
+                            <use xlink:href="./res/img/currency.svg#<?= $currency_symbol; ?>"></use>
                         </svg>
                     </label>
-                    <label class="gray_input">
-                        <input type="radio" name="bet_value" value="1" autocomplete="off">
-                        <span>1</span>
-                        <svg width="18" height="18" viewBox="0 0 18 18" style="fill: rgb(255, 255, 255);">
-                            <use xlink:href="./res/img/currency.svg#USD"></use>
-                        </svg>
-                    </label>
-                    <label class="gray_input">
-                        <input type="radio" name="bet_value" value="2" autocomplete="off">
-                        <span>2</span>
-                        <svg width="18" height="18" viewBox="0 0 18 18" style="fill: rgb(255, 255, 255);">
-                            <use xlink:href="./res/img/currency.svg#USD"></use>
-                        </svg>
-                    </label>
-                    <label class="gray_input">
-                        <input type="radio" name="bet_value" value="7" autocomplete="off">
-                        <span>7</span>
-                        <svg width="18" height="18" viewBox="0 0 18 18" style="fill: rgb(255, 255, 255);">
-                            <use xlink:href="./res/img/currency.svg#USD"></use>
-                        </svg>
-                    </label>
+                    <?php endforeach; ?>
                 </div>
             </section>
             <section id="dificulity">
@@ -120,7 +111,10 @@
         is_real_mode: <?= $is_real_mode ? 'true' : 'false'; ?>,
         initial_balance: <?= $user_balance_usd; ?>,
         user_country: '<?= $user_country; ?>',
-        currency_rate: <?= $user_currency_rate; ?>
+        currency_rate: <?= $user_currency_rate; ?>,
+        min_bet: <?= $min_bet; ?>,
+        max_bet: <?= $max_bet; ?>,
+        currency_symbol: '<?= $currency_symbol; ?>'
     };
     
     console.log('Game config:', window.GAME_CONFIG);

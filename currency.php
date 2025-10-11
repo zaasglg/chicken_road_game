@@ -58,6 +58,37 @@ function convertFromUSD($amount, $country) {
     return $amount * $rate;
 }
 
+// Конфигурация ставок для разных стран
+$bet_configs = [
+    'Colombia' => [
+        'currency' => 'COP',
+        'quick_bets' => [2500, 5000, 10000, 35000],
+        'min_bet' => 1000,
+        'max_bet' => 700000,
+        'default_bet' => 2500
+    ],
+    'Paraguay' => [
+        'currency' => 'PYG',
+        'quick_bets' => [5000, 10000, 20000, 70000],
+        'min_bet' => 1000,
+        'max_bet' => 1500000,
+        'default_bet' => 5000
+    ],
+    'default' => [
+        'currency' => 'USD',
+        'quick_bets' => [0.5, 1, 2, 7],
+        'min_bet' => 0.5,
+        'max_bet' => 150,
+        'default_bet' => 0.5
+    ]
+];
+
+// Функция для получения конфигурации ставок по стране
+function getBetConfig($country) {
+    global $bet_configs;
+    return isset($bet_configs[$country]) ? $bet_configs[$country] : $bet_configs['default'];
+}
+
 // Инициализация курса для текущего пользователя
 if (!isset($_SESSION['CHICKEN_USER_RATE'])) {
     $_SESSION['CHICKEN_USER_RATE'] = 1;
