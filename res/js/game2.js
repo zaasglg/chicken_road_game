@@ -643,9 +643,7 @@ class Game{
         this.game_result_saved = false; // Сбрасываем флаг для новой игры
         this.balance -= this.current_bet;
         $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
-        if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
-            updateBalanceOnServer(this.balance);
-        }
+        // Баланс теперь обновляется через API напрямую, не нужно вызывать updateBalanceOnServer
         $('.sector').off().on('click', function(){ 
             // Проверяем, что курица может двигаться
             if (GAME.cur_status === 'game' && GAME.alife && CHICKEN.alife) {
@@ -691,9 +689,7 @@ class Game{
             console.log("WIN: Final balance after award:", this.balance);
             // Принудительно обновляем отображение баланса в интерфейсе
             $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
-            if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
-                updateBalanceOnServer(this.balance);
-            }
+            // Баланс теперь обновляется через API напрямую, не нужно вызывать updateBalanceOnServer
             if( SETTINGS.volume.sound ){ SOUNDS.win.play(); } 
             $('#win_modal').css('display', 'flex');
             $('#win_modal h3').html( 'x'+ SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] );
@@ -1399,49 +1395,6 @@ function render(){
 }
 
 render(); 
-
-function updateBalanceOnServer(balance) {
-    if (!window.GAME_CONFIG.is_real_mode || !window.GAME_CONFIG.user_id) {
-        console.log('Demo mode - not updating server balance');
-        return;
-    }
-    
-    var headers = {
-        'Content-Type': 'application/json',
-    };
-    
-    // Добавляем access_token если он есть
-    if (window.ACCESS_TOKEN) {
-        headers['Authorization'] = 'Bearer ' + window.ACCESS_TOKEN;
-    }
-    
-    fetch('./api.php?controller=users&action=update_balance', {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify({
-            user_id: window.GAME_CONFIG.user_id,
-            balance: balance,
-            access_token: window.ACCESS_TOKEN || null
-        })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.text();
-    })
-    .then(text => {
-        try {
-            const data = JSON.parse(text);
-            console.log('Balance updated on server:', data);
-        } catch (e) {
-            console.error('Invalid JSON response:', text);
-        }
-    })
-    .catch(error => {
-        console.error('Failed to update balance on server:', error);
-    });
-}
 
 function saveGameResult(result, bet, award, balance) {
     if (!window.GAME_CONFIG.is_real_mode || !window.GAME_CONFIG.user_id) {
