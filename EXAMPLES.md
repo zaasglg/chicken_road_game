@@ -100,6 +100,40 @@ console.log('Access token:', window.ACCESS_TOKEN);
 console.log('Token preview:', window.ACCESS_TOKEN ? window.ACCESS_TOKEN.substring(0, 20) + '...' : 'none');
 ```
 
+### Диагностические инструменты
+
+#### Debug API Tool
+Откройте `debug_api.html` в браузере для диагностики проблем с API:
+
+```bash
+# Локально
+open debug_api.html
+
+# Или с токеном из URL
+open "debug_api.html?access_token=YOUR_TOKEN"
+```
+
+**Возможности:**
+- ✅ Проверка валидности JWT токена
+- ✅ Тестирование API запросов
+- ✅ Альтернативные методы отправки (FormData, XHR)
+- ✅ Просмотр сохраненных данных (fallback)
+- ✅ Экспорт данных в CSV
+
+#### Fallback механизм
+Если API недоступен, игра автоматически:
+1. **Пробует разные методы** отправки (JSON, FormData, XHR)
+2. **Сохраняет данные** в localStorage
+3. **Показывает уведомление** пользователю
+4. **Позволяет экспорт** данных для ручной обработки
+
+#### Просмотр сохраненных данных
+```javascript
+// В консоли браузера
+const savedData = JSON.parse(localStorage.getItem('failed_api_calls') || '[]');
+console.log('Сохраненные данные:', savedData);
+```
+
 ### Примеры curl запросов
 
 ```bash

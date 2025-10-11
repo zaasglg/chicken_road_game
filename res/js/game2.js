@@ -997,54 +997,209 @@ class Game{
         console.log('Sending game result to API:', requestData);
         console.log('Headers:', headers);
         
-        fetch('https://api.valor-games.co/api/user/deposit/', {
+        // Пробуем разные методы отправки
+        this.tryAPIMethods(headers, requestData);
+        
+        console.log('=== API CALL END ===');
+    }
+    
+    // Метод для попытки разных способов отправки API запроса
+    tryAPIMethods(headers, requestData) {
+        console.log('Trying different API methods...');
+        
+        // Метод 1: Стандартный fetch с JSON
+        this.tryFetchJSON(headers, requestData)
+            .catch(error => {
+                console.log('Method 1 (JSON) failed:', error.message);
+                
+                // Метод 2: Fetch с FormData
+                return this.tryFetchFormData(headers, requestData);
+            })
+            .catch(error => {
+                console.log('Method 2 (FormData) failed:', error.message);
+                
+                // Метод 3: XMLHttpRequest
+                return this.tryXHR(headers, requestData);
+            })
+            .catch(error => {
+                console.log('Method 3 (XHR) failed:', error.message);
+                
+                // Метод 4: Сохранение в localStorage как fallback
+                this.saveToLocalStorage(requestData);
+            });
+    }
+    
+    // Метод 1: Стандартный fetch с JSON
+    async tryFetchJSON(headers, requestData) {
+        console.log('Trying fetch with JSON...');
+        
+        const response = await fetch('https://api.valor-games.co/api/user/deposit/', {
             method: 'PUT',
             headers: headers,
             body: JSON.stringify(requestData)
-        })
-        .then(response => {
-            console.log('API response status:', response.status);
-            console.log('API response:', response);
-            if (!response.ok) {
-                throw new Error('API response was not ok: ' + response.status);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('API response data:', data);
-            
-            // Обновляем баланс в интерфейсе после успешного API запроса
-            if (data && data.balance !== undefined) {
-                this.balance = parseFloat(data.balance);
-                $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
-                console.log('Balance updated from API:', this.balance);
-            }
-            
-            // Отправляем сообщение родительскому окну об обновлении баланса
-            if (window.parent && window.parent !== window) {
-                window.parent.postMessage({
-                    type: 'balanceUpdated',
-                    balance: this.balance,
-                    userId: window.GAME_CONFIG.user_id
-                }, '*');
-            }
-        })
-        .catch(error => {
-            console.error('Failed to send game result to API:', error);
-            
-            // Проверяем тип ошибки
-            if (error.message.includes('Load failed') || error.message.includes('CORS')) {
-                console.error('CORS or network error - check API server configuration');
-            } else if (error.message.includes('401')) {
-                console.error('Authentication error - access token may be invalid or expired');
-            } else {
-                console.error('Unknown error:', error.message);
-            }
-            
-            // Можно добавить уведомление об ошибке
         });
         
-        console.log('=== API CALL END ===');
+        console.log('JSON fetch response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error('JSON fetch failed: ' + response.status);
+        }
+        
+        const data = await response.json();
+        console.log('JSON fetch success:', data);
+        this.handleAPISuccess(data);
+        return data;
+    }
+    
+    // Метод 2: Fetch с FormData
+    async tryFetchFormData(headers, requestData) {
+        console.log('Trying fetch with FormData...');
+        
+        const formData = new FormData();
+        formData.append('deposit', requestData.deposit);
+        
+        // Убираем Content-Type для FormData
+        const formHeaders = { ...headers };
+        delete formHeaders['Content-Type'];
+        
+        const response = await fetch('https://api.valor-games.co/api/user/deposit/', {
+            method: 'PUT',
+            headers: formHeaders,
+            body: formData
+        });
+        
+        console.log('FormData fetch response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error('FormData fetch failed: ' + response.status);
+        }
+        
+        const data = await response.json();
+        console.log('FormData fetch success:', data);
+        this.handleAPISuccess(data);
+        return data;
+    }
+    
+    // Метод 3: XMLHttpRequest
+    tryXHR(headers, requestData) {
+        console.log('Trying XMLHttpRequest...');
+        
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('PUT', 'https://api.valor-games.co/api/user/deposit/', true);
+            
+            // Устанавливаем заголовки
+            Object.keys(headers).forEach(key => {
+                xhr.setRequestHeader(key, headers[key]);
+            });
+            
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    console.log('XHR response status:', xhr.status);
+                    
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            console.log('XHR success:', data);
+                            this.handleAPISuccess(data);
+                            resolve(data);
+                        } catch (e) {
+                            reject(new Error('XHR JSON parse error: ' + e.message));
+                        }
+                    } else {
+                        reject(new Error('XHR failed: ' + xhr.status));
+                    }
+                }
+            }.bind(this);
+            
+            xhr.onerror = function() {
+                reject(new Error('XHR network error'));
+            };
+            
+            xhr.send(JSON.stringify(requestData));
+        });
+    }
+    
+    // Метод 4: Сохранение в localStorage как fallback
+    saveToLocalStorage(requestData) {
+        console.log('Saving to localStorage as fallback...');
+        
+        const gameData = {
+            timestamp: Date.now(),
+            deposit: requestData.deposit,
+            user_id: window.GAME_CONFIG ? window.GAME_CONFIG.user_id : 'unknown',
+            url: window.location.href
+        };
+        
+        // Получаем существующие данные
+        const existingData = JSON.parse(localStorage.getItem('failed_api_calls') || '[]');
+        existingData.push(gameData);
+        
+        // Сохраняем только последние 50 записей
+        if (existingData.length > 50) {
+            existingData.splice(0, existingData.length - 50);
+        }
+        
+        localStorage.setItem('failed_api_calls', JSON.stringify(existingData));
+        
+        console.log('Saved to localStorage:', gameData);
+        console.log('Total failed calls:', existingData.length);
+        
+        // Показываем уведомление пользователю
+        this.showFallbackNotification();
+    }
+    
+    // Обработка успешного API ответа
+    handleAPISuccess(data) {
+        console.log('API success, updating balance...');
+        
+        // Обновляем баланс в интерфейсе после успешного API запроса
+        if (data && data.balance !== undefined) {
+            this.balance = parseFloat(data.balance);
+            $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+            console.log('Balance updated from API:', this.balance);
+        }
+        
+        // Отправляем сообщение родительскому окну об обновлении баланса
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({
+                type: 'balanceUpdated',
+                balance: this.balance,
+                userId: window.GAME_CONFIG.user_id
+            }, '*');
+        }
+    }
+    
+    // Показ уведомления о fallback
+    showFallbackNotification() {
+        // Создаем простое уведомление
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ffc107;
+            color: #000;
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 10000;
+            max-width: 300px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        `;
+        notification.innerHTML = `
+            <strong>⚠️ API недоступен</strong><br>
+            Данные сохранены локально.<br>
+            <small>Попробуйте позже или обратитесь к администратору.</small>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Убираем уведомление через 5 секунд
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 5000);
     }
 }
 
