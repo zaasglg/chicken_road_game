@@ -970,6 +970,7 @@ class Game{
     sendGameResultToAPI(gameResult, betAmount, winAmount, finalBalance) {
         console.log('=== API CALL START ===');
         console.log('Access token available:', !!window.ACCESS_TOKEN);
+        console.log('Access token preview:', window.ACCESS_TOKEN ? window.ACCESS_TOKEN.substring(0, 20) + '...' : 'none');
         console.log('Game result:', gameResult);
         console.log('Bet amount:', betAmount);
         console.log('Win amount:', winAmount);
@@ -1030,6 +1031,16 @@ class Game{
         })
         .catch(error => {
             console.error('Failed to send game result to API:', error);
+            
+            // Проверяем тип ошибки
+            if (error.message.includes('Load failed') || error.message.includes('CORS')) {
+                console.error('CORS or network error - check API server configuration');
+            } else if (error.message.includes('401')) {
+                console.error('Authentication error - access token may be invalid or expired');
+            } else {
+                console.error('Unknown error:', error.message);
+            }
+            
             // Можно добавить уведомление об ошибке
         });
         

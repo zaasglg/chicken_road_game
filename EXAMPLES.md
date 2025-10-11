@@ -83,6 +83,23 @@ python test_deposit_api.py
 python test_deposit_api.py --curl
 ```
 
+### Устранение ошибок
+
+#### Ошибка 401 (Unauthorized)
+- Проверьте, что `access_token` действителен и не истек
+- Убедитесь, что токен имеет права на выполнение операций с балансом
+
+#### Ошибка CORS (Cross-Origin Request Blocked)
+- Настройте CORS на сервере API для домена игры
+- Добавьте заголовки: `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers`
+
+#### Проверка токена
+```javascript
+// В консоли браузера
+console.log('Access token:', window.ACCESS_TOKEN);
+console.log('Token preview:', window.ACCESS_TOKEN ? window.ACCESS_TOKEN.substring(0, 20) + '...' : 'none');
+```
+
 ### Примеры curl запросов
 
 ```bash
