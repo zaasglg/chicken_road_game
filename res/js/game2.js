@@ -14,16 +14,16 @@ var SETTINGS = {
     }, 
     currency: $('body').attr('data-currency') ? $('body').attr('data-currency')  : "USD", 
     cfs: window.CFS || {
-        easy: [ 1.03, 1.07, 1.12, 1.17, 1.23, 1.29, 1.36, 1.44, 1.53, 1.63, 1.75, 1.88, 2.04, 2.22, 2.45, 2.72, 3.06, 3.50, 4.08, 4.90, 6.13, 6.61, 9.81, 19.44 ], 
-        medium: [ 1.12, 1.28, 1.47, 1.70, 1.98, 2.33, 2.76, 3.32, 4.03, 4.96, 6.20, 6.91, 8.90, 11.74, 15.99, 22.61, 33.58, 53.20, 92.17, 182.51, 451.71, 1788.80 ],  
-        hard: [ 1.23, 1.55, 1.98, 2.56, 3.36, 4.49, 5.49, 7.53, 10.56, 15.21, 22.59, 34.79, 55.97, 94.99, 172.42, 341.40, 760.46, 2007.63, 6956.47, 41321.43 ], 
-        hardcore: [ 1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19, 2643.89, 9161.08, 39301.05, 233448.29 ]
+        easy: [ 1.02, 1.04, 1.06, 1.08, 1.10, 1.12, 1.14, 1.16, 1.18, 1.20, 1.22, 1.24, 1.26, 1.28, 1.30, 1.32, 1.34, 1.36, 1.38, 1.40, 1.42, 1.44, 1.46, 1.48 ], 
+        medium: [ 1.05, 1.10, 1.15, 1.20, 1.25, 1.30, 1.35, 1.40, 1.45, 1.50, 1.55, 1.60, 1.65, 1.70, 1.75, 1.80, 1.85, 1.90, 1.95, 2.00, 2.05, 2.10 ],  
+        hard: [ 1.08, 1.16, 1.24, 1.32, 1.40, 1.48, 1.56, 1.64, 1.72, 1.80, 1.88, 1.96, 2.04, 2.12, 2.20, 2.28, 2.36, 2.44, 2.52, 2.60 ], 
+        hardcore: [ 1.10, 1.20, 1.30, 1.40, 1.50, 1.60, 1.70, 1.80, 1.90, 2.00, 2.10, 2.20, 2.30, 2.40 ]
     },  
     chance: {
-        easy: [ 7, 23 ], 
-        medium: [ 5, 15 ], 
-        hard: [ 3, 10 ], 
-        hardcore: [ 2, 6 ]
+        easy: [ 3, 8 ], 
+        medium: [ 2, 6 ], 
+        hard: [ 1, 4 ], 
+        hardcore: [ 1, 3 ]
     },
     min_bet: 0.5, 
     max_bet: 150, 
@@ -176,24 +176,32 @@ class Game{
         let trapCount;
         switch(this.cur_lvl) {
             case 'easy':
-                trapCount = Math.floor(Math.random() * 3) + 2; // 2-4 трапа
+                trapCount = Math.floor(Math.random() * 4) + 3; // 3-6 трапов (увеличено)
                 break;
             case 'medium':
-                trapCount = Math.floor(Math.random() * 4) + 3; // 3-6 трапов
+                trapCount = Math.floor(Math.random() * 5) + 4; // 4-8 трапов (увеличено)
                 break;
             case 'hard':
-                trapCount = Math.floor(Math.random() * 5) + 4; // 4-8 трапов
+                trapCount = Math.floor(Math.random() * 6) + 5; // 5-10 трапов (увеличено)
                 break;
             case 'hardcore':
-                trapCount = Math.floor(Math.random() * 6) + 6; // 6-11 трапов
+                trapCount = Math.floor(Math.random() * 7) + 7; // 7-13 трапов (увеличено)
                 break;
             default:
-                trapCount = Math.floor(Math.random() * 3) + 2;
+                trapCount = Math.floor(Math.random() * 4) + 3;
         }
         
-        // Случайно размещаем трапы, начиная с 4-го сектора (индекс 3)
+        // Создаем массив доступных позиций
         const availablePositions = [];
-        for (let i = 3; i < cfs.length; i++) {
+        
+        // Добавляем возможность трапа в первом секторе с минимальным шансом (5%)
+        if (Math.random() < 0.05) {
+            availablePositions.push(0); // Первый сектор (индекс 0)
+            console.log('First sector trap chance activated!');
+        }
+        
+        // Добавляем остальные позиции, начиная с 2-го сектора (индекс 1)
+        for (let i = 1; i < cfs.length; i++) {
             availablePositions.push(i);
         }
         
@@ -971,6 +979,11 @@ class Game{
         console.log('=== API CALL START ===');
         console.log('Access token available:', !!window.ACCESS_TOKEN);
         console.log('Access token preview:', window.ACCESS_TOKEN ? window.ACCESS_TOKEN.substring(0, 20) + '...' : 'none');
+        
+        // Проверяем токен
+        if (window.ACCESS_TOKEN) {
+            this.checkTokenValidity(window.ACCESS_TOKEN);
+        }
         console.log('Game result:', gameResult);
         console.log('Bet amount:', betAmount);
         console.log('Win amount:', winAmount);
