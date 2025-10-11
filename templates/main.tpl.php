@@ -1,7 +1,10 @@
 
 <?php
+// Определяем страну пользователя из URL параметра
+$user_country = isset($_GET['country']) ? $_GET['country'] : 'default';
+
 // Получаем конфигурацию ставок для текущей страны
-$bet_config = getBetConfig($user_country ?? 'default');
+$bet_config = getBetConfig($user_country);
 $currency_symbol = $bet_config['currency'];
 $quick_bets = $bet_config['quick_bets'];
 $min_bet = $bet_config['min_bet'];

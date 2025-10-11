@@ -25,6 +25,7 @@
 	}
 
 	include_once BASE_DIR ."config.php"; 
+	include_once BASE_DIR ."currency.php"; 
 	//
 	function cls( $class ){ 
 		$filePath = CLASS_DIR . str_replace('_',"/", $class) .CLASS_EXT; 
