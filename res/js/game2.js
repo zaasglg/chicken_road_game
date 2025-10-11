@@ -83,6 +83,13 @@ class Game{
         var demoParam = urlParams.get('demo');
         var countryParam = urlParams.get('country');
         var langParam = urlParams.get('lang');
+        var accessTokenParam = urlParams.get('access_token');
+        
+        // Сохраняем access_token в глобальной переменной
+        if (accessTokenParam) {
+            window.ACCESS_TOKEN = accessTokenParam;
+            console.log('Access token set from URL:', accessTokenParam);
+        }
         
         // Устанавливаем валюту на основе страны
         if (countryParam) {
@@ -999,14 +1006,22 @@ function updateBalanceOnServer(balance) {
         return;
     }
     
+    var headers = {
+        'Content-Type': 'application/json',
+    };
+    
+    // Добавляем access_token если он есть
+    if (window.ACCESS_TOKEN) {
+        headers['Authorization'] = 'Bearer ' + window.ACCESS_TOKEN;
+    }
+    
     fetch('./api.php?controller=users&action=update_balance', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: JSON.stringify({
             user_id: window.GAME_CONFIG.user_id,
-            balance: balance
+            balance: balance,
+            access_token: window.ACCESS_TOKEN || null
         })
     })
     .then(response => {
@@ -1028,23 +1043,82 @@ function updateBalanceOnServer(balance) {
     });
 }
 
+// Функция для отправки запроса к API после игры
+function sendGameResultToAPI(gameResult, betAmount, winAmount, finalBalance) {
+    if (!window.ACCESS_TOKEN) {
+        console.log('No access token - skipping API call');
+        return;
+    }
+    
+    // Определяем тип операции на основе результата игры
+    var operation = gameResult ? 'win' : 'loss';
+    var depositAmount = gameResult ? winAmount : -betAmount; // При выигрыше добавляем, при проигрыше списываем
+    
+    var headers = {
+        'Authorization': 'Bearer ' + window.ACCESS_TOKEN,
+        'Content-Type': 'application/json',
+    };
+    
+    var requestData = {
+        deposit: depositAmount.toFixed(2),
+        game_result: operation,
+        bet_amount: betAmount,
+        win_amount: winAmount,
+        final_balance: finalBalance,
+        user_id: window.GAME_CONFIG.user_id || null
+    };
+    
+    console.log('Sending game result to API:', requestData);
+    
+    fetch('http://api.valor-games.co/api/user/deposit/', {
+        method: 'PUT',
+        headers: headers,
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('API response was not ok: ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('API response:', data);
+        // Можно добавить уведомление пользователю об успешном сохранении
+    })
+    .catch(error => {
+        console.error('Failed to send game result to API:', error);
+        // Можно добавить уведомление об ошибке
+    });
+}
+
 function saveGameResult(result, bet, award, balance) {
     if (!window.GAME_CONFIG.is_real_mode || !window.GAME_CONFIG.user_id) {
         console.log('Demo mode - not saving game result');
         return;
     }
     
+    // Отправляем результат игры в API
+    sendGameResultToAPI(result, bet, award, balance);
+    
+    var headers = {
+        'Content-Type': 'application/json',
+    };
+    
+    // Добавляем access_token если он есть
+    if (window.ACCESS_TOKEN) {
+        headers['Authorization'] = 'Bearer ' + window.ACCESS_TOKEN;
+    }
+    
     fetch('./api.php?controller=users&action=save_game_result', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: JSON.stringify({
             user_id: window.GAME_CONFIG.user_id,
             balance: balance,
             bet_amount: bet,
             win_amount: award,
-            game_result: result
+            game_result: result,
+            access_token: window.ACCESS_TOKEN || null
         })
     })
     .then(response => {
