@@ -1078,12 +1078,20 @@ class Game{
         })
         .then(data => {
             console.log('API response data:', data);
+            console.log('API response data type:', typeof data);
+            console.log('API response data keys:', Object.keys(data || {}));
+            console.log('API response balance field:', data ? data.balance : 'undefined');
         
         // Обновляем баланс в интерфейсе после успешного API запроса
         if (data && data.balance !== undefined) {
             this.balance = parseFloat(data.balance);
             $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
             console.log('Balance updated from API:', this.balance);
+        } else {
+            console.log('No balance field in API response, keeping current balance:', this.balance);
+            // Принудительно обновляем отображение баланса в интерфейсе
+            $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+            console.log('Balance display updated to:', this.balance.toFixed(2));
         }
         
         // Отправляем сообщение родительскому окну об обновлении баланса
@@ -1108,6 +1116,9 @@ class Game{
             }
             
             // Можно добавить уведомление об ошибке
+            // Принудительно обновляем отображение баланса в интерфейсе даже при ошибке API
+            $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+            console.log('Balance display updated after API error:', this.balance.toFixed(2));
         });
         
         console.log('=== API CALL END ===');
