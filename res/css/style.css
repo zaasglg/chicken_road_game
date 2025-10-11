@@ -156,3 +156,49 @@ footer#footer{ flex-grow:0; flex-shrink:0; background:var(--footer-bg); display:
 @media ( max-width:360px ){
     #logo{ width: 120px; } /* Минимальный размер для очень маленьких экранов */
 }
+
+/* Уменьшаем flex-grow для мобильных версий */
+@media ( max-width:700px ){
+    #header .menu{ flex-grow: 0.5; } /* Уменьшаем рост меню */
+    #stats div{ flex-grow: 0.5; } /* Уменьшаем рост статистики */
+    #random_bet .inner h2{ flex-grow: 0.5; } /* Уменьшаем рост текста ставки */
+    #dificulity{ flex-grow: 0.5; } /* Уменьшаем рост секции сложности */
+    .bet_value_wrapper{ flex-grow: 0.5; } /* Уменьшаем рост обертки ставки */
+    .bet_value_wrapper input{ flex-grow: 0.5; } /* Уменьшаем рост инпута ставки */
+    .basic_radio{ flex-grow: 0.5; } /* Уменьшаем рост радио кнопок */
+    .basic_radio .gray_input{ flex-grow: 0.5; } /* Уменьшаем рост серых инпутов */
+    #dificulity h2{ flex-grow: 0.5; } /* Уменьшаем рост заголовка сложности */
+    #dificulity h2 span{ flex-grow: 0.5; } /* Уменьшаем рост спана заголовка */
+    #dificulity .radio_buttons label{ flex-grow: 0.5; } /* Уменьшаем рост лейблов */
+    #buttons_wrapper{ flex-grow: 0.5; } /* Уменьшаем рост обертки кнопок */
+}
+
+@media ( max-width:480px ){
+    #header .menu{ flex-grow: 0.3; } /* Еще больше уменьшаем на маленьких экранах */
+    #stats div{ flex-grow: 0.3; }
+    #random_bet .inner h2{ flex-grow: 0.3; }
+    #dificulity{ flex-grow: 0.3; }
+    .bet_value_wrapper{ flex-grow: 0.3; }
+    .bet_value_wrapper input{ flex-grow: 0.3; }
+    .basic_radio{ flex-grow: 0.3; }
+    .basic_radio .gray_input{ flex-grow: 0.3; }
+    #dificulity h2{ flex-grow: 0.3; }
+    #dificulity h2 span{ flex-grow: 0.3; }
+    #dificulity .radio_buttons label{ flex-grow: 0.3; }
+    #buttons_wrapper{ flex-grow: 0.3; }
+}
+
+@media ( max-width:360px ){
+    #header .menu{ flex-grow: 0.2; } /* Минимальный рост для очень маленьких экранов */
+    #stats div{ flex-grow: 0.2; }
+    #random_bet .inner h2{ flex-grow: 0.2; }
+    #dificulity{ flex-grow: 0.2; }
+    .bet_value_wrapper{ flex-grow: 0.2; }
+    .bet_value_wrapper input{ flex-grow: 0.2; }
+    .basic_radio{ flex-grow: 0.2; }
+    .basic_radio .gray_input{ flex-grow: 0.2; }
+    #dificulity h2{ flex-grow: 0.2; }
+    #dificulity h2 span{ flex-grow: 0.2; }
+    #dificulity .radio_buttons label{ flex-grow: 0.2; }
+    #buttons_wrapper{ flex-grow: 0.2; }
+}

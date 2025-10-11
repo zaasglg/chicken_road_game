@@ -17,6 +17,22 @@
     #logo{ width: 120px; } /* Минимальный размер для очень маленьких экранов */
 }
 
+/* Уменьшаем flex-grow для мобильных версий в style2.css */
+@media (max-width:700px){
+    #battlefield .sector .frame{ flex-grow: 0.5; } /* Уменьшаем рост фрейма */
+    #battlefield .sector .arc{ flex-grow: 0.5; } /* Уменьшаем рост арки */
+}
+
+@media (max-width:480px){
+    #battlefield .sector .frame{ flex-grow: 0.3; } /* Еще больше уменьшаем на маленьких экранах */
+    #battlefield .sector .arc{ flex-grow: 0.3; }
+}
+
+@media (max-width:360px){
+    #battlefield .sector .frame{ flex-grow: 0.2; } /* Минимальный рост для очень маленьких экранов */
+    #battlefield .sector .arc{ flex-grow: 0.2; }
+}
+
 
 
 #main_wrapper{ background:#394265; }
