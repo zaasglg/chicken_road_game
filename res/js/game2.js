@@ -174,8 +174,42 @@ class Game{
                 currency: SETTINGS.currency,
                 game_config: window.GAME_CONFIG
             });
+            
+            // Обновляем значения кнопок MIN/MAX
+            this.updateMinMaxButtons();
         } else {
             console.log('GAME_CONFIG not available, using default values');
+        }
+    }
+    
+    // Метод для обновления кнопок MIN/MAX
+    updateMinMaxButtons() {
+        if (window.GAME_CONFIG) {
+            var minBet = window.GAME_CONFIG.min_bet || 0.5;
+            var maxBet = window.GAME_CONFIG.max_bet || 150;
+            
+            // Обновляем обработчики кнопок с новыми значениями
+            $('.bet_value_wrapper button[data-rel="min"]').off('click').on('click', function() {
+                if (GAME.cur_status == 'loading') {
+                    if (SETTINGS.volume.sound) SOUNDS.button.play();
+                    $('#bet_size').val(minBet);
+                    console.log('MIN button clicked, setting bet to:', minBet);
+                }
+            });
+            
+            $('.bet_value_wrapper button[data-rel="max"]').off('click').on('click', function() {
+                if (GAME.cur_status == 'loading') {
+                    if (SETTINGS.volume.sound) SOUNDS.button.play();
+                    var finalMaxBet = Math.min(maxBet, GAME.balance);
+                    $('#bet_size').val(finalMaxBet);
+                    console.log('MAX button clicked, setting bet to:', finalMaxBet);
+                }
+            });
+            
+            console.log('Min/Max buttons updated for country:', window.GAME_CONFIG.user_country, {
+                min: minBet,
+                max: maxBet
+            });
         }
     } 
     // Генерируем локальные трапы на основе коэффициентов
@@ -878,29 +912,7 @@ class Game{
                     $self.val( $val ); 
                 }
             });
-            // установка ставки кнопками min max
-            $('.bet_value_wrapper button').off().on('click', function(){ 
-                if( GAME.cur_status == 'loading' ){ 
-                    if( SETTINGS.volume.sound ){ SOUNDS.button.play(); } 
-                    var $self=$(this); 
-                    var $rel = $self.data('rel'); 
-                    switch( $rel ){
-                        case "min": 
-                            var minBet = window.GAME_CONFIG ? window.GAME_CONFIG.min_bet : SETTINGS.min_bet;
-                            minBet = isNaN(minBet) ? 0.5 : minBet;
-                            $('#bet_size').val( minBet );
-                            console.log('MIN button clicked, setting bet to:', minBet);
-                            break; 
-                        case "max": 
-                            var maxBet = window.GAME_CONFIG ? window.GAME_CONFIG.max_bet : SETTINGS.max_bet;
-                            maxBet = isNaN(maxBet) ? 150 : maxBet;
-                            var finalMaxBet = Math.min(maxBet, GAME.balance);
-                            $('#bet_size').val( finalMaxBet );
-                            console.log('MAX button clicked, setting bet to:', finalMaxBet);
-                            break; 
-                    }
-                }
-            });
+            // установка ставки кнопками min max - обработчики будут установлены в updateMinMaxButtons()
             // установка ставки кнопками со значением
             $('.basic_radio input[name="bet_value"]').off().on('change', function(){ 
                 if( GAME.cur_status == 'loading' ){
@@ -1218,4 +1230,15 @@ $(document).ready(function(){
 });
 
 setTimeout( function(){ open_game(); }, 1000 );
+
+// Обновляем кнопки MIN/MAX после загрузки конфигурации
+$(document).ready(function(){
+    // Ждем загрузки GAME_CONFIG и обновляем кнопки
+    setTimeout(function() {
+        if (window.GAME_CONFIG && window.GAME) {
+            window.GAME.updateMinMaxButtons();
+            console.log('Min/Max buttons updated after page load');
+        }
+    }, 1500);
+});
 
