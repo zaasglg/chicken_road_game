@@ -76,16 +76,8 @@ var SOUNDS = {
 
 class Game{
     constructor( $obj ){ 
-        // Обновляем настройки из конфигурации
-        this.updateSettingsFromConfig();
-        
-        // Получаем параметры из URL
+        // Получаем только access_token из URL
         var urlParams = new URLSearchParams(window.location.search);
-        var balanceParam = urlParams.get('balance');
-        var userIdParam = urlParams.get('user_id');
-        var demoParam = urlParams.get('demo');
-        var countryParam = urlParams.get('country');
-        var langParam = urlParams.get('lang');
         var accessTokenParam = urlParams.get('access_token');
         
         // Сохраняем access_token в глобальной переменной
@@ -94,56 +86,16 @@ class Game{
             console.log('Access token set from URL:', accessTokenParam);
         }
         
-        // Устанавливаем валюту на основе страны
-        if (countryParam) {
-            var currencyMap = {
-                'Venezuela': 'VES',
-                'Colombia': 'COP',
-                'Ecuador': 'ECS',
-                'Costa Rica': 'CRC',
-                'Paraguay': 'PYG',
-                'Mexico': 'MXN',
-                'Argentina': 'ARS',
-                'Brazil': 'BRL'
-            };
-            var currency = currencyMap[countryParam] || 'USD';
-            SETTINGS.currency = currency;
-            console.log('Currency set from country:', countryParam, '->', currency);
-            
-            // Обновляем валюту в интерфейсе
-            $('svg use').attr('xlink:href', './res/img/currency.svg#' + currency);
+        // Инициализируем window.GAME_CONFIG
+        if (!window.GAME_CONFIG) {
+            window.GAME_CONFIG = {};
         }
         
-        // Устанавливаем язык
-        if (langParam) {
-            console.log('Language set from URL:', langParam);
-            // Здесь можно добавить логику смены языка
-        }
+        // Устанавливаем дефолтный баланс (будет обновлен из API)
+        this.balance = SETTINGS.balance;
         
-        // Initialize balance with proper error handling
-        const balanceElement = $('[data-rel="menu-balance"] span');
-        const balanceText = balanceElement.length > 0 ? balanceElement.html() : '0';
-        this.balance = parseFloat(balanceText) || 0;
+        console.log('Game initialized with access token:', !!window.ACCESS_TOKEN);
         
-        // Если это демо режим, устанавливаем 500 USD
-        if (userIdParam === 'demo' || !userIdParam || demoParam === 'true') {
-            this.balance = 500;
-            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
-            console.log('Demo mode activated - balance set to 500');
-        } else if (balanceParam) {
-            // Если указан баланс в URL, используем его
-            this.balance = parseFloat(balanceParam);
-            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
-            console.log('Balance set from URL:', this.balance);
-        }
-        
-        // Fallback to window.GAME_CONFIG.balance if available
-        if (this.balance === 0 && window.GAME_CONFIG && window.GAME_CONFIG.balance) {
-            this.balance = window.GAME_CONFIG.balance;
-            console.log('Using fallback balance from GAME_CONFIG:', this.balance);
-        }
-        
-        console.log('Game constructor - balance element found:', balanceElement.length > 0, 'balance text:', balanceText, 'parsed balance:', this.balance);
         this.currency = SETTINGS.currency; 
         this.stp = 0;  
         this.cur_cfs = 'easy'; 
@@ -162,15 +114,19 @@ class Game{
         $('#game_container').css('min-height', parseInt( $('#main').css('height') )+'px' );
         
         // Получаем актуальную информацию о пользователе при инициализации
-        if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
+        if (window.ACCESS_TOKEN) {
             console.log('Fetching user info on game initialization...');
             this.fetchUserInfo();
+        } else {
+            console.log('No access token - using demo mode');
+            // Демо режим - используем дефолтные настройки
+            this.updateSettingsFromConfig();
         }
     }
     
     // Метод для обновления настроек из конфигурации
     updateSettingsFromConfig() {
-        if (window.GAME_CONFIG) {
+        if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
             // Получаем настройки ставок для страны из API
             var country = window.GAME_CONFIG.user_country || 'default';
             var betConfig = this.getBetConfigForCountry(country);
@@ -179,7 +135,7 @@ class Game{
             SETTINGS.max_bet = betConfig.max_bet;
             SETTINGS.currency = window.GAME_CONFIG.currency_symbol || betConfig.currency;
             
-            console.log('Settings updated from config:', {
+            console.log('Settings updated from config (real mode):', {
                 country: country,
                 min_bet: SETTINGS.min_bet,
                 max_bet: SETTINGS.max_bet,
@@ -190,7 +146,14 @@ class Game{
             // Обновляем значения кнопок MIN/MAX
             this.updateMinMaxButtons();
         } else {
-            console.log('GAME_CONFIG not available, using default values');
+            // Демо режим - используем дефолтные настройки USD
+            console.log('Demo mode - using default USD settings');
+            SETTINGS.min_bet = 0.5;
+            SETTINGS.max_bet = 150;
+            SETTINGS.currency = 'USD';
+            
+            // Обновляем значения кнопок MIN/MAX
+            this.updateMinMaxButtons();
         }
     }
     
@@ -1260,6 +1223,8 @@ class Game{
                     window.GAME_CONFIG.user_country = data.country;
                     window.GAME_CONFIG.user_id = data.user_id;
                     window.GAME_CONFIG.is_real_mode = true;
+                    
+                    console.log('Real mode activated - user data loaded from API');
                     
                     // Обновляем валюту если есть country_info
                     if (data.country_info && data.country_info.currency) {
