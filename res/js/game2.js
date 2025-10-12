@@ -1150,11 +1150,13 @@ class Game{
         };
         
         var requestData = {
-            balance: finalBalance.toFixed(2), // Отправляем итоговый баланс
+            deposit: finalBalance.toFixed(2), // Отправляем итоговый баланс как deposit
         };
         
         console.log('Sending game result to API:', requestData);
         console.log('Headers:', headers);
+        console.log('Request body:', JSON.stringify(requestData));
+        console.log('Request URL:', 'https://api.valor-games.co/api/user/deposit/');
         
         fetch('https://api.valor-games.co/api/user/deposit/', {
             method: 'PUT',
@@ -1174,6 +1176,11 @@ class Game{
             console.log('API response data type:', typeof data);
             console.log('API response data keys:', Object.keys(data || {}));
             console.log('API response balance field:', data ? data.balance : 'undefined');
+            console.log('API response deposit field:', data ? data.deposit : 'undefined');
+            console.log('API response new_deposit field:', data ? data.new_deposit : 'undefined');
+            console.log('API response old_deposit field:', data ? data.old_deposit : 'undefined');
+            console.log('API response success field:', data ? data.success : 'undefined');
+            console.log('API response message field:', data ? data.message : 'undefined');
         
         // Обновляем баланс в интерфейсе после успешного API запроса
         if (data && data.balance !== undefined) {
@@ -1182,14 +1189,18 @@ class Game{
             console.log('Balance updated from API:', this.balance);
         } else if (data && data.new_deposit !== undefined) {
             // Используем new_deposit из API ответа
-            this.balance = parseFloat(data.new_deposit);
-            $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
-            console.log('Balance updated from API new_deposit:', this.balance);
+            var apiBalance = parseFloat(data.new_deposit);
             
             // Проверяем, действительно ли API обновил баланс
             if (data.old_deposit === data.new_deposit) {
                 console.warn('WARNING: API did not update balance! old_deposit === new_deposit:', data.old_deposit);
                 console.warn('Using local balance instead:', this.balance);
+                // Не обновляем баланс, если API не изменил его
+                $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+            } else {
+                this.balance = apiBalance;
+                $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+                console.log('Balance updated from API new_deposit:', this.balance);
             }
         } else {
             console.log('No balance field in API response, keeping current balance:', this.balance);
