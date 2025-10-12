@@ -674,6 +674,10 @@ class Game{
         console.log('Current bet:', this.current_bet);
         console.log('Balance before calculation:', this.balance); 
         
+        // Сбрасываем флаг в начале каждой игры
+        this.game_result_saved = false;
+        console.log('Game result saved flag reset to:', this.game_result_saved); 
+        
         // Уведомляем сервер об окончании игры
         // Локальная игра - не нужно отправлять на сервер
         
@@ -765,7 +769,11 @@ class Game{
                 // Получаем актуальную информацию о пользователе после завершения игры
                 if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
                     console.log('Fetching user info after game completion...');
-                    GAME.fetchUserInfo();
+                    // Добавляем задержку, чтобы внешний API успел обновить баланс
+                    setTimeout(() => {
+                        console.log('Fetching user info with delay...');
+                        GAME.fetchUserInfo();
+                    }, 2000); // 2 секунды задержки
                 }
                 
                 GAME.create();  
@@ -972,7 +980,7 @@ class Game{
                 var $self=$(this); 
                 var $val = $self.is(':checked'); 
                 if( !$val ){ SETTINGS.volume.sound = 0; } 
-                else { SETTINGS.volume.music = 0.9; }                
+                else { SETTINGS.volume.music = 0.9; } 
             });
             $('#switch_music').off().on('change', function(){
                 var $self=$(this); 
@@ -1281,9 +1289,22 @@ class Game{
             
             // Обновляем баланс из API
             if (data && data.deposit !== undefined) {
-                this.balance = parseFloat(data.deposit);
-                $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
-                console.log('Balance updated from user info API:', this.balance);
+                var apiBalance = parseFloat(data.deposit);
+                var currentBalance = this.balance;
+                
+                // Не перезаписываем баланс, если текущий больше (игра еще не завершена на сервере)
+                if (apiBalance < currentBalance) {
+                    console.log('API balance is lower than current balance, keeping current:', {
+                        api_balance: apiBalance,
+                        current_balance: currentBalance
+                    });
+                    // Обновляем только отображение, но не сам баланс
+                    $('[data-rel="menu-balance"] span').html(currentBalance.toFixed(2));
+                } else {
+                    this.balance = apiBalance;
+                    $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+                    console.log('Balance updated from user info API:', this.balance);
+                }
                 
                 // Обновляем конфигурацию игры с данными из API
                 if (data.country) {
