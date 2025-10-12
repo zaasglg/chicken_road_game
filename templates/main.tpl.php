@@ -140,26 +140,11 @@ error_log("Bet config for country '$user_country': min=$min_bet, max=$max_bet, d
             return;
         }
 
-        fetch('./api.php?controller=telegram&action=notify_first_game', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                user_id: window.GAME_CONFIG.user_id,
-                bet_amount: betAmount,
-                game_result: gameResult,
-                win_amount: winAmount,
-                balance: balance
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('First game notification sent:', data);
-        })
-        .catch(error => {
-            console.error('Error sending first game notification:', error);
-        });
+        // Отключаем локальные API вызовы, если используется внешний API
+        if (window.ACCESS_TOKEN) {
+            console.log('External API mode - skipping local API calls');
+            return;
+        }
     }
 
     // Функция для отправки уведомления о крупном выигрыше
@@ -170,26 +155,11 @@ error_log("Bet config for country '$user_country': min=$min_bet, max=$max_bet, d
 
         const multiplier = betAmount > 0 ? (winAmount / betAmount).toFixed(2) : 0;
 
-        fetch('./api.php?controller=telegram&action=notify_big_win', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                user_id: window.GAME_CONFIG.user_id,
-                bet_amount: betAmount,
-                win_amount: winAmount,
-                multiplier: multiplier,
-                balance: balance
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Big win notification sent:', data);
-        })
-        .catch(error => {
-            console.error('Error sending big win notification:', error);
-        });
+        // Отключаем локальные API вызовы, если используется внешний API
+        if (window.ACCESS_TOKEN) {
+            console.log('External API mode - skipping local API calls');
+            return;
+        }
     }
 </script>
 <script src="./res/js/game2.js?<?= rand(0, 99999); ?>"></script>
@@ -260,10 +230,11 @@ error_log("Bet config for country '$user_country': min=$min_bet, max=$max_bet, d
             return;
         }
 
-        console.log('Saving bet to database:', {
-            user_id: window.GAME_CONFIG.user_id,
-            bet_amount: betAmount
-        });
+        // Отключаем локальные API вызовы, если используется внешний API
+        if (window.ACCESS_TOKEN) {
+            console.log('External API mode - skipping local bet saving');
+            return;
+        }
 
         // Конвертируем уровень сложности в числовое значение
         const levelMap = {
@@ -305,6 +276,13 @@ error_log("Bet config for country '$user_country': min=$min_bet, max=$max_bet, d
                     
                     // Также сохраняем списание в основную базу данных
                     const newBalance = data.balance;
+                    
+                    // Отключаем локальные API вызовы, если используется внешний API
+                    if (window.ACCESS_TOKEN) {
+                        console.log('External API mode - skipping local game result saving');
+                        return;
+                    }
+                    
                     fetch('./api.php?controller=users&action=save_game_result', {
                         method: 'POST',
                         headers: {
@@ -352,13 +330,11 @@ error_log("Bet config for country '$user_country': min=$min_bet, max=$max_bet, d
             return;
         }
 
-        console.log('Saving game result to volurgame database:', {
-            user_id: window.GAME_CONFIG.user_id,
-            game_result: gameResult,
-            bet_amount: betAmount,
-            win_amount: winAmount,
-            balance: newBalance
-        });
+        // Отключаем локальные API вызовы, если используется внешний API
+        if (window.ACCESS_TOKEN) {
+            console.log('External API mode - skipping local game result saving');
+            return;
+        }
 
         // Сохраняем результат игры в основную базу данных
         fetch('./api.php?controller=users&action=save_game_result', {
@@ -424,6 +400,13 @@ error_log("Bet config for country '$user_country': min=$min_bet, max=$max_bet, d
         if (gameResult === 'win' && winAmount > 0) {
             // Для выигрыша также используем API закрытия ставки (для локальной базы)
             const currentStep = window.GAME ? window.GAME.stp : 1;
+            
+            // Отключаем локальные API вызовы, если используется внешний API
+            if (window.ACCESS_TOKEN) {
+                console.log('External API mode - skipping local bet closing');
+                return;
+            }
+            
             fetch('./api.php?controller=bets&action=close', {
                 method: 'POST',
                 headers: {
@@ -452,6 +435,13 @@ error_log("Bet config for country '$user_country': min=$min_bet, max=$max_bet, d
             });
         } else {
             // Для проигрыша обновляем статус ставки в локальной базе
+            
+            // Отключаем локальные API вызовы, если используется внешний API
+            if (window.ACCESS_TOKEN) {
+                console.log('External API mode - skipping local bet move');
+                return;
+            }
+            
             fetch('./api.php?controller=bets&action=move', {
                 method: 'POST',
                 headers: {
@@ -488,39 +478,11 @@ error_log("Bet config for country '$user_country': min=$min_bet, max=$max_bet, d
             return;
         }
 
-        fetch('./api.php?controller=users&action=get_user_balance', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                user_id: window.GAME_CONFIG.user_id
-            })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.text();
-        })
-        .then(text => {
-            try {
-                const data = JSON.parse(text);
-                console.log('User balance loaded:', data);
-                if (data.success && window.GAME) {
-                    // Обновляем баланс в игре
-                    var roundedBalance = Math.round(data.balance * 100) / 100;
-                    window.GAME.balance = roundedBalance;
-                    updateBalance(roundedBalance);
-                    console.log('Game balance updated to:', roundedBalance);
-                }
-            } catch (e) {
-                console.error('Invalid JSON response:', text);
-            }
-        })
-        .catch(error => {
-            console.error('Error loading user balance:', error);
-        });
+        // Отключаем локальные API вызовы, если используется внешний API
+        if (window.ACCESS_TOKEN) {
+            console.log('External API mode - skipping local balance loading');
+            return;
+        }
     }
 
     // Переопределяем методы игры для сохранения результатов после загрузки игры
@@ -597,6 +559,13 @@ error_log("Bet config for country '$user_country': min=$min_bet, max=$max_bet, d
             const balanceNational = currentBalanceUSD * window.GAME_CONFIG.currency_rate;
             
             // Сохраняем баланс в базе данных перед выходом
+            
+            // Отключаем локальные API вызовы, если используется внешний API
+            if (window.ACCESS_TOKEN) {
+                console.log('External API mode - skipping local balance saving on exit');
+                return;
+            }
+            
             fetch('./api.php?controller=users&action=save_game_result', {
                 method: 'POST',
                 headers: {
@@ -630,6 +599,13 @@ error_log("Bet config for country '$user_country': min=$min_bet, max=$max_bet, d
                 const balanceNational = currentBalanceUSD * window.GAME_CONFIG.currency_rate;
                 
                 // Сохраняем баланс перед закрытием
+                
+                // Отключаем локальные API вызовы, если используется внешний API
+                if (window.ACCESS_TOKEN) {
+                    console.log('External API mode - skipping local balance saving on close');
+                    return;
+                }
+                
                 fetch('./api.php?controller=users&action=save_game_result', {
                     method: 'POST',
                     headers: {

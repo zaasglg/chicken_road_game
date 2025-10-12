@@ -972,8 +972,7 @@ class Game{
                 var $self=$(this); 
                 var $val = $self.is(':checked'); 
                 if( !$val ){ SETTINGS.volume.sound = 0; } 
-                else { SETTINGS.volume.music = 0.9; } 
-                $.post('./api.php', { action: 'save_sound_settings', sound: $val ? 1 : 0 });
+                else { SETTINGS.volume.music = 0.9; }                
             });
             $('#switch_music').off().on('change', function(){
                 var $self=$(this); 
@@ -986,7 +985,7 @@ class Game{
                     SOUNDS.music.play(); 
                     SETTINGS.volume.music = 0.2;
                 } 
-                $.post('./api.php', { action: 'save_music_settings', music: $val ? 1 : 0 });
+                
             });
             
             // переключение звука через кнопку в хедере
