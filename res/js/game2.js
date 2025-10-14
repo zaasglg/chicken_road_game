@@ -293,70 +293,58 @@ class Game{
     } 
     // Генерируем локальные трапы на основе коэффициентов
     generateLocalTraps() {
-        const cfs = SETTINGS.cfs[this.cur_lvl];
-        const traps = [];
-        
-        // Сначала создаем все секторы как безопасные
-        for (let i = 0; i < cfs.length; i++) {
-            traps.push({
-                position: i,
-                coefficient: cfs[i],
-                isTrap: false
-            });
+        // Сначала пытаемся использовать WebSocket для генерации ловушек
+        if (window.trapWSClient && window.trapWSClient.isWebSocketConnected()) {
+            console.log('Using WebSocket for trap generation');
+            this.requestTrapsFromWebSocket();
+            return;
         }
         
-        // Определяем количество трапов в зависимости от уровня сложности
-        let trapCount;
-        switch(this.cur_lvl) {
-            case 'easy':
-                trapCount = Math.floor(Math.random() * 3) + 2; // 2-4 трапа
-                break;
-            case 'medium':
-                trapCount = Math.floor(Math.random() * 4) + 3; // 3-6 трапов
-                break;
-            case 'hard':
-                trapCount = Math.floor(Math.random() * 5) + 4; // 4-8 трапов
-                break;
-            case 'hardcore':
-                trapCount = Math.floor(Math.random() * 6) + 6; // 6-11 трапов
-                break;
-            default:
-                trapCount = Math.floor(Math.random() * 3) + 2;
+        console.log('WebSocket not connected - waiting for connection...');
+        // Ждем подключения к WebSocket
+        this.waitForWebSocketConnection();
+    }
+    
+    
+    waitForWebSocketConnection() {
+        console.log('Waiting for WebSocket connection...');
+        
+        // Проверяем подключение каждые 500ms
+        const checkConnection = () => {
+            if (window.trapWSClient && window.trapWSClient.isWebSocketConnected()) {
+                console.log('WebSocket connected! Requesting traps...');
+                this.requestTrapsFromWebSocket();
+            } else {
+                // Продолжаем ждать подключения
+                setTimeout(checkConnection, 500);
+            }
+        };
+        
+        checkConnection();
+    }
+    
+    getCoefficientArray() {
+        // Используем только коэффициенты из WebSocket
+        if (this.websocketCoefficients && Object.keys(this.websocketCoefficients).length > 0) {
+            console.log('Using WebSocket coefficients array');
+            return Object.values(this.websocketCoefficients);
         }
         
-        // Случайно размещаем трапы, начиная с 4-го сектора (индекс 3)
-        const availablePositions = [];
-        for (let i = 3; i < cfs.length; i++) {
-            availablePositions.push(i);
+        // Если WebSocket коэффициенты недоступны, возвращаем пустой массив
+        console.log('WebSocket coefficients not available, returning empty array');
+        return [];
+    }
+    
+    getCoefficient(step) {
+        // Используем только коэффициент из WebSocket
+        if (this.websocketCoefficients && this.websocketCoefficients[step] !== undefined) {
+            console.log(`Using WebSocket coefficient for step ${step}:`, this.websocketCoefficients[step]);
+            return this.websocketCoefficients[step];
         }
         
-        // Перемешиваем позиции
-        for (let i = availablePositions.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [availablePositions[i], availablePositions[j]] = [availablePositions[j], availablePositions[i]];
-        }
-        
-        // Размещаем трапы на случайных позициях
-        for (let i = 0; i < Math.min(trapCount, availablePositions.length); i++) {
-            const position = availablePositions[i];
-            traps[position].isTrap = true;
-        }
-        
-        this.localTraps = traps;
-        this.traps = traps.filter(t => t.isTrap).map(t => t.position + 1);
-        console.log('Local traps generated for level', this.cur_lvl, ':', this.traps);
-        console.log('Trap positions:', this.traps);
-        
-        if (this.cur_status === 'loading') {
-            this.updateTraps();
-        }
-        // Если ждем начала игры - запускаем ее
-        if (this.waitingForTraps && this.pendingGameStart) {
-            this.updateTraps();
-            this.actuallyStartGame();
-        }
-        
-        return traps;
+        // Если WebSocket коэффициент недоступен, возвращаем 1.0
+        console.log(`WebSocket coefficient not available for step ${step}, using 1.0`);
+        return 1.0;
     }
     
     // Метод для правильного позиционирования курицы
@@ -381,16 +369,45 @@ class Game{
     }
     
     create(){
+        console.log('Creating game board...');
         this.traps = null;
         this.isMoving = false; // Сбрасываем флаг движения
         this.wrap.html('').css('left', 0);
-        // Генерируем локальные трапы
-        this.generateLocalTraps();
-        // Создаем поле
+        
+        // Проверяем WebSocket подключение
+        if (window.trapWSClient && window.trapWSClient.isWebSocketConnected()) {
+            console.log('Using WebSocket for trap generation');
+            this.requestTrapsFromWebSocket();
+            // Создаем поле сразу, ловушки обновятся через WebSocket
+            this.createBoard();
+        } else {
+            console.log('WebSocket not connected - waiting for connection...');
+            // Ждем подключения к WebSocket
+            this.waitForWebSocketConnection();
+            // Создаем поле с пустыми ловушками, они обновятся когда WebSocket подключится
         this.createBoard();
+        }
+        console.log('Game board creation completed');
     }
     createBoard() {
-        var $arr = SETTINGS.cfs[ this.cur_lvl ]; 
+        // Проверяем, что ловушки сгенерированы
+        if (!this.traps || this.traps.length === 0) {
+            console.log('No traps generated, waiting for WebSocket...');
+            // Устанавливаем пустые ловушки, они обновятся через WebSocket
+            this.traps = [];
+        }
+        
+        var $arr = this.getCoefficientArray(); 
+        
+        // Если коэффициенты недоступны, создаем базовые
+        if ($arr.length === 0) {
+            console.log('Creating basic coefficients while waiting for WebSocket...');
+            $arr = [];
+            for (let i = 0; i < 24; i++) {
+                $arr.push(1.0 + (i * 0.05)); // Базовые коэффициенты
+            }
+        }
+        
         this.stp = 0; // Reset step on new board
         this.alife = 0;
         this.win = 0;
@@ -508,7 +525,7 @@ class Game{
         });
     }
     createFallback(){
-        var $arr = SETTINGS.cfs[ this.cur_lvl ]; 
+        var $arr = this.getCoefficientArray(); 
         this.wrap.append(`<div class="sector start" data-id="0">
                                 <div class="breaks" breaks="3"></div>
                                 <div class="breaks" breaks="2"></div>
@@ -642,6 +659,11 @@ class Game{
         CHICKEN.alife = 1; 
         this.game_result_saved = false; // Сбрасываем флаг для новой игры
         this.balance -= this.current_bet;
+        
+        // Уведомляем WebSocket о начале игры
+        if (window.trapWSClient && window.trapWSClient.isWebSocketConnected()) {
+            window.trapWSClient.startGame();
+        }
         $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
         // Баланс теперь обновляется через API напрямую, не нужно вызывать updateBalanceOnServer
         $('.sector').off().on('click', function(){ 
@@ -685,7 +707,7 @@ class Game{
         if( $win ){ 
             this.win = 1; 
             $('#fire').addClass('active');
-            $award = ( this.current_bet * SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] ); 
+            $award = ( this.current_bet * this.getCoefficient( this.stp - 1 ) ); 
             $award = $award ? $award : 0; 
             console.log("WIN: Award calculated:", $award, "Balance before:", this.balance);
             this.balance += $award; 
@@ -696,7 +718,7 @@ class Game{
             // Баланс теперь обновляется через API напрямую, не нужно вызывать updateBalanceOnServer
             if( SETTINGS.volume.sound ){ SOUNDS.win.play(); } 
             $('#win_modal').css('display', 'flex');
-            $('#win_modal h3').html( 'x'+ SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] );
+            $('#win_modal h3').html( 'x'+ this.getCoefficient( this.stp - 1 ) );
             $('#win_modal h4 span').html( $award.toFixed(2) );
         } 
         else {
@@ -705,6 +727,9 @@ class Game{
             this.balance = Math.round(this.balance * 100) / 100; // Округляем до 2 знаков
             $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
             if( SETTINGS.volume.sound ){ SOUNDS.lose.play(); } 
+            
+            // Не отправляем сообщение в WebSocket - просто используем последнюю ловушку
+            console.log("Chicken burned, using current WebSocket trap data");
         }
         
         // Сохраняем результат игры в базе данных только один раз
@@ -765,6 +790,11 @@ class Game{
                 $('[data-rel="menu-balance"] span').html( GAME.balance.toFixed(2) );
                 GAME.cur_status = "loading"; 
                 // Флаг уже сброшен выше
+                
+                // Уведомляем WebSocket об окончании игры
+                if (window.trapWSClient && window.trapWSClient.isWebSocketConnected()) {
+                    window.trapWSClient.endGame();
+                }
                 
                 // Получаем актуальную информацию о пользователе после завершения игры
                 if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
@@ -935,7 +965,7 @@ class Game{
                 break; 
             case 'game': 
                 $('#close_bet').css('display', 'flex'); 
-                var $award = ( this.current_bet * SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] ); 
+                var $award = ( this.current_bet * this.getCoefficient( this.stp - 1 ) ); 
                     $award = $award ? $award.toFixed(2) : 0; 
                 $('#close_bet span').html( $award +' '+ SETTINGS.currency ).css('display', 'flex');
                 $('#start').html( LOCALIZATION.TEXT_BETS_WRAPPER_GO ); 
@@ -1311,7 +1341,7 @@ class Game{
                     });
                     // Обновляем только отображение, но не сам баланс
                     $('[data-rel="menu-balance"] span').html(currentBalance.toFixed(2));
-                } else {
+                    } else {
                     this.balance = apiBalance;
                     $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
                     console.log('Balance updated from user info API:', this.balance);
@@ -1445,6 +1475,119 @@ function saveGameResult(result, bet, award, balance) {
         window.GAME.sendGameResultToAPI(result === 'win', bet, award, balance);
     } else {
         console.log('GAME object not found or sendGameResultToAPI method not available');
+    }
+}
+
+// WebSocket методы для генерации ловушек
+Game.prototype.updateTrapsFromWebSocket = function(websocketData) {
+    console.log('Updating traps from WebSocket:', websocketData);
+    
+    if (websocketData && websocketData.traps) {
+        // Обновляем ловушки из WebSocket
+        this.localTraps = websocketData.traps;
+        this.traps = websocketData.traps;
+        
+        console.log('Traps updated from WebSocket:', this.traps);
+        
+        // Обновляем коэффициенты из WebSocket (не используем локальные)
+        if (websocketData.sectors) {
+            console.log('Using coefficients from WebSocket, not local SETTINGS');
+            this.updateSectorCoefficients(websocketData.sectors);
+        }
+        
+        // Обновляем отображение ловушек на поле
+        this.updateTraps();
+    }
+};
+
+Game.prototype.updateSectorCoefficients = function(sectors) {
+    console.log('Updating sector coefficients from WebSocket (replacing local coefficients):', sectors);
+    
+    // Создаем полный массив коэффициентов для всех секторов (0-23)
+    this.websocketCoefficients = {};
+    
+    // Сначала заполняем все секторы базовыми коэффициентами
+    for (let i = 0; i < 24; i++) {
+        this.websocketCoefficients[i] = 1.0 + (i * 0.05); // Базовые коэффициенты
+    }
+    
+    // Затем обновляем конкретные секторы из WebSocket данных
+    sectors.forEach(sector => {
+        const sectorElement = $(`.sector[data-sector="${sector.id}"]`);
+        if (sectorElement.length > 0) {
+            // Сохраняем коэффициент из WebSocket
+            this.websocketCoefficients[sector.position] = sector.coefficient;
+            
+            // Обновляем отображение коэффициента
+            sectorElement.find('.coincontainer span').text(sector.coefficient.toFixed(2));
+            
+            // Обновляем статус ловушки
+            if (sector.isTrap) {
+                sectorElement.addClass('flame');
+            } else {
+                sectorElement.removeClass('flame');
+            }
+        }
+    });
+    
+    console.log('WebSocket coefficients saved:', this.websocketCoefficients);
+};
+
+Game.prototype.requestTrapsFromWebSocket = function(level = null) {
+    if (window.trapWSClient && window.trapWSClient.isWebSocketConnected()) {
+        const requestLevel = level || this.cur_lvl || 'easy';
+        console.log('Requesting traps from WebSocket for level:', requestLevel);
+        
+        // Устанавливаем уровень и запрашиваем ловушки
+        window.trapWSClient.setLevel(requestLevel);
+    } else {
+        console.log('WebSocket not connected, waiting for connection...');
+        this.waitForWebSocketConnection();
+    }
+};
+
+Game.prototype.toggleWebSocketMode = function() {
+    if (window.trapWSClient) {
+        if (window.trapWSClient.isWebSocketConnected()) {
+            console.log('WebSocket mode enabled');
+            return true;
+    } else {
+            console.log('WebSocket not connected, attempting to connect...');
+            window.trapWSClient.connect();
+            return false;
+        }
+    } else {
+        console.log('WebSocket client not available');
+        return false;
+    }
+};
+
+// Метод для обновления ловушек для всех уровней из WebSocket
+Game.prototype.updateAllLevelsTrapsFromWebSocket = function(allLevelsData) {
+    console.log('Updating traps for all levels from WebSocket:', allLevelsData);
+    
+    // Сохраняем данные для всех уровней
+    if (!this.allLevelsTraps) {
+        this.allLevelsTraps = {};
+    }
+    
+    // Обновляем данные для каждого уровня
+    Object.keys(allLevelsData).forEach(level => {
+        const levelData = allLevelsData[level];
+        this.allLevelsTraps[level] = {
+            traps: levelData.traps,
+            sectors: levelData.sectors,
+            trapCount: levelData.trapCount,
+            timestamp: levelData.timestamp
+        };
+        
+        console.log(`Updated traps for level ${level}:`, levelData.traps);
+    });
+    
+    // Если текущий уровень совпадает с одним из обновленных, применяем изменения
+    if (this.allLevelsTraps[this.cur_lvl]) {
+        console.log(`Applying auto-generated traps for current level: ${this.cur_lvl}`);
+        this.updateTrapsFromWebSocket(this.allLevelsTraps[this.cur_lvl]);
     }
     
     var headers = {

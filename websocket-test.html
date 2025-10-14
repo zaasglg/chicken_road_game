@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chicken Road WebSocket Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+        }
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .trap-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chicken Road WebSocket Test</h1>
+    
+    <div class="container">
+        <h3>Connection Status</h3>
+        <div id="status" class="status disconnected">Disconnected</div>
+        <button id="connectBtn">Connect</button>
+        <button id="disconnectBtn" disabled>Disconnect</button>
+        <button id="pingBtn" disabled>Ping</button>
+    </div>
+    
+    <div class="container">
+        <h3>Generate Traps</h3>
+        <button id="easyBtn" disabled>Easy</button>
+        <button id="mediumBtn" disabled>Medium</button>
+        <button id="hardBtn" disabled>Hard</button>
+        <button id="hardcoreBtn" disabled>Hardcore</button>
+        <button id="levelsBtn" disabled>Get Levels</button>
+    </div>
+    
+    <div class="container">
+        <h3>Trap Information</h3>
+        <div id="trapInfo" class="trap-info">No traps generated yet</div>
+    </div>
+    
+    <div class="container">
+        <h3>Log</h3>
+        <div id="log" class="log"></div>
+        <button id="clearLogBtn">Clear Log</button>
+    </div>
+
+    <script>
+        let ws = null;
+        let isConnected = false;
+
+        const statusEl = document.getElementById('status');
+        const logEl = document.getElementById('log');
+        const trapInfoEl = document.getElementById('trapInfo');
+        
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const pingBtn = document.getElementById('pingBtn');
+        const easyBtn = document.getElementById('easyBtn');
+        const mediumBtn = document.getElementById('mediumBtn');
+        const hardBtn = document.getElementById('hardBtn');
+        const hardcoreBtn = document.getElementById('hardcoreBtn');
+        const levelsBtn = document.getElementById('levelsBtn');
+        const clearLogBtn = document.getElementById('clearLogBtn');
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.innerHTML += `[${timestamp}] ${message}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function updateStatus(connected) {
+            isConnected = connected;
+            if (connected) {
+                statusEl.textContent = 'Connected';
+                statusEl.className = 'status connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                pingBtn.disabled = false;
+                easyBtn.disabled = false;
+                mediumBtn.disabled = false;
+                hardBtn.disabled = false;
+                hardcoreBtn.disabled = false;
+                levelsBtn.disabled = false;
+            } else {
+                statusEl.textContent = 'Disconnected';
+                statusEl.className = 'status disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                pingBtn.disabled = true;
+                easyBtn.disabled = true;
+                mediumBtn.disabled = true;
+                hardBtn.disabled = true;
+                hardcoreBtn.disabled = true;
+                levelsBtn.disabled = true;
+            }
+        }
+
+        function connect() {
+            try {
+                ws = new WebSocket('ws://localhost:8080');
+                
+                ws.onopen = () => {
+                    log('Connected to WebSocket server');
+                    updateStatus(true);
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        log(`Received: ${JSON.stringify(data, null, 2)}`);
+                        
+                        if (data.type === 'traps_generated') {
+                            displayTrapInfo(data.data);
+                        } else if (data.type === 'auto_generated_traps') {
+                            displayAllLevelsInfo(data.data);
+                        }
+                    } catch (error) {
+                        log(`Error parsing message: ${error.message}`);
+                    }
+                };
+                
+                ws.onclose = () => {
+                    log('Disconnected from WebSocket server');
+                    updateStatus(false);
+                };
+                
+                ws.onerror = (error) => {
+                    log(`WebSocket error: ${error.message || 'Unknown error'}`);
+                };
+                
+            } catch (error) {
+                log(`Connection error: ${error.message}`);
+            }
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        function sendMessage(message) {
+            if (ws && isConnected) {
+                ws.send(JSON.stringify(message));
+                log(`Sent: ${JSON.stringify(message)}`);
+            } else {
+                log('Cannot send message: not connected');
+            }
+        }
+
+        function displayTrapInfo(data) {
+            let html = `
+                <h4>Level: ${data.level}</h4>
+                <p><strong>Trap Count:</strong> ${data.trapCount}</p>
+                <p><strong>Traps:</strong> [${data.traps.join(', ')}]</p>
+                <p><strong>Sectors:</strong> ${data.sectors}</p>
+                <p><strong>Chance:</strong> [${data.chance.join(', ')}]</p>
+                <p><strong>Timestamp:</strong> ${data.timestamp}</p>
+            `;
+            
+            if (data.sectors && data.sectors.length > 0) {
+                html += '<h5>Sector Details:</h5><ul>';
+                data.sectors.forEach(sector => {
+                    const trapClass = sector.isTrap ? ' (TRAP)' : '';
+                    html += `<li>Sector ${sector.id}: ${sector.coefficient.toFixed(2)}${trapClass}</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            trapInfoEl.innerHTML = html;
+        }
+
+        function displayAllLevelsInfo(allLevelsData) {
+            let html = '<h4>Auto-Generated Traps for All Levels</h4>';
+            
+            Object.keys(allLevelsData).forEach(level => {
+                const levelData = allLevelsData[level];
+                html += `
+                    <div style="border: 1px solid #ddd; margin: 10px 0; padding: 10px; border-radius: 5px;">
+                        <h5>Level: ${level}</h5>
+                        <p><strong>Trap Count:</strong> ${levelData.trapCount}</p>
+                        <p><strong>Traps:</strong> [${levelData.traps.join(', ')}]</p>
+                        <p><strong>Timestamp:</strong> ${levelData.timestamp}</p>
+                    </div>
+                `;
+            });
+            
+            trapInfoEl.innerHTML = html;
+        }
+
+        // Event listeners
+        connectBtn.addEventListener('click', connect);
+        disconnectBtn.addEventListener('click', disconnect);
+        pingBtn.addEventListener('click', () => sendMessage({ type: 'ping' }));
+        easyBtn.addEventListener('click', () => sendMessage({ type: 'generate_traps', level: 'easy' }));
+        mediumBtn.addEventListener('click', () => sendMessage({ type: 'generate_traps', level: 'medium' }));
+        hardBtn.addEventListener('click', () => sendMessage({ type: 'generate_traps', level: 'hard' }));
+        hardcoreBtn.addEventListener('click', () => sendMessage({ type: 'generate_traps', level: 'hardcore' }));
+        levelsBtn.addEventListener('click', () => sendMessage({ type: 'get_levels' }));
+        clearLogBtn.addEventListener('click', () => { logEl.innerHTML = ''; });
+
+        // Auto-connect on page load
+        window.addEventListener('load', () => {
+            log('Page loaded, attempting to connect...');
+            connect();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+@import 'mixins.scss';
+
+.game-tile {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 50px;
+    text-align: center;
+    line-height: 100px;
+
+    background-image: linear-gradient(
+        320.64deg,
+        #17191c -42.09%,
+        #32383e 167.71%
+    );
+    box-shadow: 3px 3px 4px rgba(10, 9, 9, 0.400896);
+    border-radius: 13px;
+
+    aspect-ratio: 1;
+
+    &__inner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        width: 100%;
+        height: 100%;
+
+        opacity: 0;
+        transition: opacity 0.5s ease-in;
+
+        &-possible-win {
+            display: flex;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+
+            font-weight: 600;
+            font-size: 13px;
+            line-height: 18px;
+            color: rgba(255, 255, 255, 0.3);
+
+            opacity: 0;
+            transition: opacity 0.1s ease-in;
+        }
+    }
+    &._win,
+    &._lose {
+        .game-tile__inner-possible-win {
+            display: none;
+        }
+        &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 13px;
+            background-repeat: no-repeat;
+            background-position: 0 center;
+        }
+    }
+    &._win {
+        background-image: radial-gradient(
+                33.95% 33.95% at -8.16% 104.08%,
+                rgba(148, 226, 251, 0.37) 5.7%,
+                rgba(33, 38, 42, 0) 100%
+            ),
+            radial-gradient(
+                33.68% 33.68% at 113.68% 107.89%,
+                rgba(148, 226, 251, 0.37) 0%,
+                rgba(33, 38, 42, 0) 100%
+            ),
+            radial-gradient(
+                62.12% 48.25% at 49.48% -8.25%,
+                #5cd9f5 0%,
+                rgba(38, 42, 46, 0) 100%
+            ),
+            linear-gradient(
+                129.86deg,
+                #242526 -1.52%,
+                rgba(29, 33, 36, 0.21) 107.51%
+            );
+    }
+    &._lose {
+        background-image: radial-gradient(
+                54.74% 54.74% at 116.84% 108.42%,
+                rgba(221, 28, 28, 0.79) 0%,
+                rgba(30, 33, 37, 0) 100%
+            ),
+            radial-gradient(
+                47.37% 40% at 9.47% -4.74%,
+                rgba(242, 137, 41, 0.63) 0%,
+                rgba(24, 26, 29, 0) 100%
+            ),
+            linear-gradient(
+                119.79deg,
+                #3a3e41 -9.65%,
+                rgba(15, 16, 18, 0.58) 113%
+            );
+        &._opened {
+            &::after {
+                background-repeat: no-repeat;
+                background-image: url('../images/bomb-sprite.png');
+                background-size: auto 100%;
+                -webkit-animation: play-bomb 0.5s steps(9) forwards;
+                animation: play-bomb 0.5s steps(9) forwards;
+                @include mobile() {
+                    width: 62px;
+                    height: 62px;
+                    top: 50%;
+                    left: 50%;
+                    margin-left: 0;
+                    transform: translate(-50%, -50%);
+
+                    // background-size: auto 100%;
+                    // -webkit-animation: play-bomb 0.5s steps(8) forwards;
+                    // animation: play-bomb 0.5s steps(8) forwards;
+                }
+            }
+        }
+        .game-tile__inner {
+            transition-delay: 0.3s;
+        }
+    }
+    &._active {
+        // padding: 1px;
+        box-shadow: none;
+
+        .game-tile__inner {
+            width: calc(100% - 2px);
+            height: calc(100% - 2px);
+            background-image: linear-gradient(
+                317.11deg,
+                #0a0b0d -17.46%,
+                #32383e 197.04%
+            );
+            box-shadow: inset -2px -2px 6px rgba(76, 79, 81, 0.26),
+                inset 4px 4px 3px rgba(10, 9, 9, 0.49);
+            border-radius: 12px;
+
+            opacity: 1;
+        }
+    }
+    &._loading {
+        &::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background-image: url('../images/puff.svg');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            @include mobile() {
+                width: 30px;
+                height: 30px;
+            }
+        }
+    }
+    .diamond,
+    .bomb {
+        position: relative;
+        z-index: 2;
+        height: 80%;
+        width: 80%;
+        background-repeat: no-repeat;
+        background-size: contain;
+        background-position: center bottom;
+    }
+    .diamond {
+        background-image: url('../images/star.png');
+    }
+    .bomb {
+        background-image: url('../images/bomb_shadow.svg');
+    }
+}
+
+@supports not (aspect-ratio: 1 / 1) {
+    .game-tile .bomb,
+    .game-tile .diamond,
+    .game-tile__inner,
+    .game-tile {
+        &:before {
+            float: left;
+            padding-top: 100%;
+            content: '';
+        }
+        &:after {
+            display: block;
+            content: '';
+            clear: both;
+        }
+    }
+}
+
+@keyframes scale {
+    0% {
+        transform: scale(0.8);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+//Bomb Animation
+@-moz-keyframes play-bomb {
+    100% {
+        // background-position: 100%;
+        background-position: calc(100% + (100% / 8));
+        opacity: 0;
+    }
+}
+@-webkit-keyframes play-bomb {
+    100% {
+        // background-position: 100%;
+        // background-position: calc(100% + (100% / 10));
+        background-position: calc(100% + (100% / 8));
+        opacity: 0;
+    }
+}
+@keyframes play-bomb {
+    100% {
+        // background-position: 100%;
+        background-position: calc(100% + (100% / 8));
+        opacity: 0;
+    }
+}

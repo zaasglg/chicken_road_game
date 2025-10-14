@@ -1,0 +1,796 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,100..900;1,100..900&display=swap');
+
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    list-style: none;
+    font-family: 'Archivo', sans-serif;
+}
+
+body .wrapper {
+    background-image: url(./imgs/bg_img.png);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center top;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+}
+
+a {
+    text-decoration: none;
+}
+
+/* .container{
+    margin: 0 auto;
+    max-width: 320px;
+} */
+.box {
+    height: 100vh;
+
+    padding-top: 25%;
+    position: relative;
+}
+
+.circle_img {
+    width: 80px;
+    min-width: 240px;
+}
+
+.circle_img2 {
+    width: 100%;
+    max-width: 230px;
+}
+
+.logo {
+    margin-bottom: 25px;
+    display: flex;
+    justify-content: center;
+    /* margin-bottom: 19px; */
+}
+
+.cloudTop {
+    position: absolute;
+    top: 0;
+}
+
+.cloudMiddleTop {
+    position: absolute;
+    right: -254px;
+    top: 80px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.modal {
+    display: none;
+    /* Скрыто по умолчанию */
+    position: fixed;
+    z-index: 100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.7);
+    /* Темный фон с прозрачностью */
+}
+
+.modal-content {
+    background-color: #212121;
+    /* Темный фон для содержимого */
+    margin: 10% auto;
+    /* Снижена высота для более компактного расположения */
+    padding: 20px;
+    border: 2px solid #FFC107;
+    /* Желтая рамка */
+    border-radius: 8px;
+    /* Скругленные углы */
+    width: 80%;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+    /* Тень для глубины */
+}
+
+.modal-content h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #FFF;
+}
+
+#coefficientList {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+#addCoefficientBtn,
+#saveCoefficientsBtn {
+    background-color: #FFC107;
+    color: #212121;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    width: 100%;
+}
+
+#addCoefficientBtn {
+    margin-bottom: 10px;
+}
+
+/* Кнопка закрытия */
+.close {
+    color: #FFC107;
+    /* Желтый цвет для кнопки закрытия */
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    transition: color 0.3s;
+    /* Плавный переход цвета */
+}
+
+.close:hover,
+.close:focus {
+    color: #ffdd57;
+    /* Более светлый желтый при наведении */
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Стили для кнопок "Добавить" и "Сохранить" */
+.button {
+    background-color: #FFC107;
+    /* Желтый фон для кнопок */
+    color: #212121;
+    /* Темный цвет текста на кнопках */
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    /* Плавный переход фона */
+}
+
+.coefficient-item {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.button:hover {
+    background-color: #ffdd57;
+    /* Светлый желтый при наведении */
+}
+
+/* Стили для ввода коэффициентов */
+.coefficient-input {
+    width: calc(100% - 80px);
+    /* Заполнение ширины с отступами */
+    padding: 10px;
+    border: 1px solid #FFC107;
+    /* Желтая рамка для ввода */
+    border-radius: 5px;
+    background-color: #424242;
+    /* Темный фон для ввода */
+    color: #FFC107;
+    /* Желтый текст в поле ввода */
+}
+
+.coefficient-input:focus {
+    outline: none;
+    border-color: #ffdd57;
+    /* Светлый желтый при фокусе */
+}
+
+/* Стили для контейнера с коэффициентами */
+.coefficient-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    /* Отступ между строками */
+}
+
+.remove-coefficient {
+    background-color: #FFC107;
+    /* Желтый фон для кнопки удаления */
+    color: #212121;
+    /* Темный цвет текста на кнопке */
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-left: 10px;
+    /* Отступ слева для расстояния между инпутом и кнопкой */
+    transition: background-color 0.3s;
+    /* Плавный переход фона */
+}
+
+.remove-coefficient:hover {
+    background-color: #ffdd57;
+    /* Светлый желтый при наведении */
+}
+
+.cloudMiddleBottom {
+    position: absolute;
+    left: -15px;
+    bottom: 178px;
+}
+
+.cloudBottom {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+}
+
+.shans {
+    color: rgb(255, 255, 255);
+    line-height: 1.6;
+    font-weight: 700;
+    font-size: 25px;
+    margin-bottom: 40px;
+}
+
+.shans__wrapper {
+    text-align: center;
+}
+
+.procent {
+    font-family: "Archive";
+    color: rgb(255, 216, 0);
+    line-height: 1.2;
+    padding-left: 10px;
+}
+
+.clouds_bottom {
+    position: absolute;
+    bottom: 0;
+    z-index: 2;
+    width: 960px;
+    left: 0;
+    height: 100px;
+    background-image: url(imgs/clouds.png);
+    background-repeat: repeat-x;
+    background-size: cover;
+    animation-name: cloudsAnim;
+    animation-duration: 80s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+}
+
+.cloud_in {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 3;
+    flex-direction: column;
+    transition: 1s all ease;
+}
+
+.logo img {
+    max-width: 120px;
+    width: 32%;
+}
+
+.support_btn {
+    color: #FFF;
+    text-align: center;
+    font-family: 'Archivo';
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+    letter-spacing: 1.62px;
+    border-radius: 5px;
+    border: 0.5px solid #FFF;
+    background: linear-gradient(90deg, #FF1534 5.62%, #F924BD 87.9%);
+    box-shadow: 0px 3px 25px 5px rgba(255, 182, 3, 0.47);
+    width: 141px;
+    height: 33px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 5;
+}
+
+.circle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 50px;
+    position: relative;
+    background-position: -15px center;
+    position: relative;
+    transition: .3s all ease;
+}
+
+.circle .first_step {
+    transition: .3s all ease;
+}
+
+.circle .first_step>span {
+    padding-left: 7px;
+    color: rgb(255, 255, 255);
+    text-align: center;
+    font-family: 'Archivo';
+    font-weight: 700;
+    font-size: 52px;
+    font-style: normal;
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+}
+
+.animating_vint {
+    position: absolute;
+    top: 0;
+    height: 265px;
+    left: 0;
+    right: 0;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    opacity: 0;
+    transform: scale(0);
+    transition: 1s all ease;
+    justify-content: center;
+}
+
+.circle.animate {
+    margin-bottom: 60px;
+}
+
+.circle.animate .first_step {
+    transform: scale(0);
+}
+
+.circle.animate .animating_vint {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.circle.animate .animating_vint img {
+    animation-name: rotateVintel;
+    animation-duration: 6s;
+    animation-timing-function: linear;
+}
+
+.start_btn {
+    display: flex;
+    position: relative;
+    width: 100%;
+    transition: .3s all ease;
+    justify-content: center;
+}
+
+.start_btn.disabled {
+    opacity: 0.8;
+    cursor: not-allowed;
+}
+
+.start_btn:not(.disabled):active {
+    transform: scale(1.2);
+}
+
+.start_btn span {
+    color: #FFF;
+    text-align: center;
+    font-family: 'Archivo';
+    font-size: 26px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+    letter-spacing: 5.72px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    bottom: 20px;
+}
+
+.check_box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* margin-bottom: 33px; */
+    gap: 0 19px;
+    margin-bottom: 33px;
+    margin-top: 20px;
+}
+
+.check_box input {
+    display: none;
+}
+
+.check_box .checkbox_swiper {
+    height: 27px;
+    width: 57px;
+    border-radius: 10px;
+    border: 0.5px solid #ccc;
+    background: #333;
+    box-shadow: none;
+    position: relative;
+    transition: .3s all ease;
+}
+
+.check_box input:checked~.checkbox_swiper {
+    background: linear-gradient(90deg, #FF1534 5.62%, #F924BD 87.9%);
+    box-shadow: 0px 3px 25px 5px rgba(255, 182, 3, 0.47);
+}
+
+.check_box .checkbox_swiper::before {
+    content: '';
+    display: block;
+    height: 29px;
+    width: 29px;
+    border-radius: 29px;
+    border: 0.5px solid #FFF;
+    background: #ccc;
+    box-shadow: none;
+    position: absolute;
+    left: -5px;
+    top: 0;
+    bottom: 0;
+    margin: auto;
+    transition: .3s all ease;
+}
+
+.check_box input:checked~.checkbox_swiper::before {
+    background: #FFF;
+    box-shadow: 0px 3px 25px 5px rgba(255, 182, 3, 0.47);
+    left: calc(100% - 29px);
+}
+
+
+.check_box .auto_sp {
+    color: #FFF;
+    text-align: center;
+    text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.05);
+    font-family: 'Archivo';
+    font-size: 20px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+    letter-spacing: 4.4px;
+}
+
+.progress_bar p {
+    color: #FFF;
+    text-align: center;
+    font-family: 'Archivo';
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+    letter-spacing: 3.96px;
+}
+
+.progress_bar {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+    margin-bottom: 5px;
+    margin-top: 10px;
+    transition: .3s all ease;
+}
+
+.progress_bar.hide {
+    transform: scale(0);
+    height: 0;
+}
+
+.progress_bar .numbers {
+    width: 320px;
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: space-between;
+    color: #fff;
+    font-size: 20px;
+    margin-right: -20px;
+    margin-bottom: -27px;
+}
+
+
+.pr_bar {
+    width: 250px;
+    height: 20px;
+    border-radius: 20px;
+    background-color: #00006B;
+    border: 1px solid #FF5722;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    position: relative;
+    overflow: hidden;
+}
+
+.pr_bar span {
+    width: 100%;
+    height: 13px;
+    border-radius: 2px;
+    background-image: url(imgs/progress_unfill.svg);
+    background-position: center;
+    background-size: cover;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    margin: auto;
+}
+
+.pr_bar span.active {
+    background-image: url(imgs/progress_full.svg);
+    z-index: 2;
+}
+
+
+.info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.info .collecting_info {
+    color: #FFD900;
+    text-align: center;
+    text-shadow: 0px 4px 10px rgba(255, 219, 95, 0.25);
+    font-family: 'Archivo';
+    font-size: 20px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+}
+
+.yellow_dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.yellow_dots span {
+    border-radius: 50%;
+    width: 15px;
+    height: 15px;
+    background-color: #FFCA0E;
+    animation-name: blink;
+    animation-duration: 1.5s;
+    animation-iteration-count: infinite;
+    animation-fill-mode: both;
+}
+
+.yellow_dots span:nth-child(2) {
+    animation-delay: .2s;
+}
+
+.yellow_dots span:nth-child(3) {
+    animation-delay: .4s;
+}
+
+
+.deposit {
+    border-radius: 10px;
+    border: 1px solid #FFF;
+    background: rgba(10, 10, 10, 0.54);
+    width: 290px;
+    height: 433px;
+    padding-top: 22px;
+    padding-bottom: 56px;
+    margin: 0 auto;
+    opacity: 0;
+    transform: scale(0);
+    transition: .3s all ease;
+    margin-top: 15px;
+    position: relative;
+    z-index: 5;
+}
+
+.dep_item {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 4px;
+}
+
+.dep_item img {
+    cursor: pointer;
+}
+
+.dep_title {
+    color: #FFF;
+    text-align: center;
+    font-family: 'Archivo';
+    font-size: 24px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+}
+
+.dep_val {
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.dep_item:first-child .dep_val input {
+    width: 62px;
+}
+
+.dep_val input {
+    color: #FFCC17;
+    text-align: center;
+    text-shadow: 0px 4px 10px rgba(255, 237, 72, 0.25);
+    font-family: 'Archivo';
+    font-size: 35px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+    border: none;
+    background-color: transparent;
+    width: 188px;
+    outline: none;
+}
+
+.dep_text {
+    color: #FFF;
+    text-align: center;
+    font-family: 'Archivo';
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+    margin-bottom: 62px;
+}
+
+.help_a {
+    color: #8AC8FF;
+    text-align: center;
+    font-family: 'Archivo';
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 300;
+    line-height: normal;
+}
+
+.dep_bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    align-items: center;
+}
+
+.box.finish .circle,
+.box.finish .cloud_in {
+    transform: scale(0);
+    opacity: 0;
+    height: 0;
+}
+
+.box.finish .deposit {
+    transform: scale(1);
+    opacity: 1;
+}
+
+
+@keyframes rotateVintel {
+    0% {
+        transform: rotate(0);
+    }
+
+    25% {
+        transform: rotate(720deg);
+    }
+
+    50% {
+        transform: rotate(1440deg);
+    }
+
+    100% {
+        transform: rotate(2880deg);
+    }
+}
+
+@keyframes blink {
+    0% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+
+    75% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes cloudsAnim {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: 960px 0;
+    }
+}
+
+@media only screen and (max-height: 700px) {
+    .circle_img {
+        min-width: 160px;
+    }
+
+    .circle .first_step>span {
+        font-size: 42px;
+    }
+
+    .circle_img2 {
+        max-width: 210px;
+    }
+
+    .check_box {
+        margin-bottom: 23px;
+        margin-top: 10px;
+    }
+}
+
+
+
+@media only screen and (min-height: 800px) {
+    .circle_img {
+        min-width: 300px;
+    }
+
+    .circle .first_step>span {
+        font-size: 60px;
+    }
+
+    .circle_img2 {
+        max-width: 250px;
+    }
+}
+
+
+@media only screen and (min-height: 900px) {
+    .circle_img {
+        min-width: 380px;
+    }
+
+    .circle .first_step>span {
+        font-size: 72px;
+    }
+
+    .circle_img2 {
+        max-width: 270px;
+    }
+}
+
+@media (max-width: 380px) {
+    .logo img {
+        max-width: 120px;
+    }
+
+}

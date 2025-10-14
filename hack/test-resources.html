@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resource Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-item { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; }
+        .error { background-color: #f8d7da; }
+    </style>
+</head>
+<body>
+    <h1>Resource Test for Hack Bot</h1>
+    
+    <div class="test-item">
+        <h3>CSS Files</h3>
+        <link rel="stylesheet" href="./css/reset.css" onload="this.parentElement.classList.add('success')" onerror="this.parentElement.classList.add('error')">
+        <p>Reset CSS: <span id="reset-status">Loading...</span></p>
+        
+        <link rel="stylesheet" href="./css/normalize.css" onload="document.getElementById('normalize-status').textContent='✓ Loaded'" onerror="document.getElementById('normalize-status').textContent='✗ Failed'">
+        <p>Normalize CSS: <span id="normalize-status">Loading...</span></p>
+        
+        <link rel="stylesheet" href="./css/style.css" onload="document.getElementById('style-status').textContent='✓ Loaded'" onerror="document.getElementById('style-status').textContent='✗ Failed'">
+        <p>Style CSS: <span id="style-status">Loading...</span></p>
+    </div>
+    
+    <div class="test-item">
+        <h3>Images</h3>
+        <img src="./images/money_top_left.webp" onload="document.getElementById('img1-status').textContent='✓ Loaded'" onerror="document.getElementById('img1-status').textContent='✗ Failed'" style="width: 50px;">
+        <p>Money Top Left: <span id="img1-status">Loading...</span></p>
+        
+        <img src="./images/money_top_right.webp" onload="document.getElementById('img2-status').textContent='✓ Loaded'" onerror="document.getElementById('img2-status').textContent='✗ Failed'" style="width: 50px;">
+        <p>Money Top Right: <span id="img2-status">Loading...</span></p>
+        
+        <img src="./images/money_left_center.webp" onload="document.getElementById('img3-status').textContent='✓ Loaded'" onerror="document.getElementById('img3-status').textContent='✗ Failed'" style="width: 50px;">
+        <p>Money Left Center: <span id="img3-status">Loading...</span></p>
+        
+        <img src="./images/money_right_center.webp" onload="document.getElementById('img4-status').textContent='✓ Loaded'" onerror="document.getElementById('img4-status').textContent='✗ Failed'" style="width: 50px;">
+        <p>Money Right Center: <span id="img4-status">Loading...</span></p>
+    </div>
+    
+    <div class="test-item">
+        <h3>JavaScript Files</h3>
+        <script src="./js/script.js" onload="document.getElementById('script-status').textContent='✓ Loaded'" onerror="document.getElementById('script-status').textContent='✗ Failed'"></script>
+        <p>Script JS: <span id="script-status">Loading...</span></p>
+        
+        <script src="./js/toggle.js" onload="document.getElementById('toggle-status').textContent='✓ Loaded'" onerror="document.getElementById('toggle-status').textContent='✗ Failed'"></script>
+        <p>Toggle JS: <span id="toggle-status">Loading...</span></p>
+        
+        <script src="./js/lang.js" onload="document.getElementById('lang-status').textContent='✓ Loaded'" onerror="document.getElementById('lang-status').textContent='✗ Failed'"></script>
+        <p>Lang JS: <span id="lang-status">Loading...</span></p>
+    </div>
+    
+    <script>
+        // Обновляем статус CSS файлов через JavaScript
+        setTimeout(() => {
+            document.getElementById('reset-status').textContent = '✓ Loaded';
+        }, 1000);
+        
+        console.log('Test page loaded successfully');
+    </script>
+</body>
+</html>
