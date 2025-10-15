@@ -110,9 +110,7 @@ error_log("Bet config for country '$user_country': min=$min_bet, max=$max_bet, d
                 <use xlink:href="./res/img/currency.svg#USD"></use>
             </svg></h4>
     </div>
-<div id="splash">
-    <span id="loader"></span>
-</div>
+
 <script>
     window.CFS = <?= json_encode($cfs_data); ?>;
     
@@ -165,7 +163,7 @@ error_log("Bet config for country '$user_country': min=$min_bet, max=$max_bet, d
 <script src="./res/js/websocket-client.js?<?= rand(0, 99999); ?>"></script>
 <script src="./res/js/game2.js?<?= rand(0, 99999); ?>"></script>
 <script>
-    // Обработка сообщений от родительского окна для обновления баланса
+    // Обработка сообщений от родит§§§§§§§§§§§§§§§§§ельского окна для обновления баланса
     window.addEventListener('message', function (event) {
         console.log('Received message in iframe:', event.data);
         if (event.data && event.data.type === 'updateBalance') {
