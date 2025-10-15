@@ -231,8 +231,20 @@ class Game{
         if (currency === 'USD') {
             return balance.toFixed(2);
         } else {
-            return balance.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            // Для COP и PYG показываем полное число без десятичных знаков
+            return balance.toLocaleString('en-US', { 
+                minimumFractionDigits: 0, 
+                maximumFractionDigits: 0,
+                useGrouping: true
+            });
         }
+    }
+    
+    // Метод для обновления отображения баланса с правильным форматированием
+    updateBalanceDisplay() {
+        var currency = SETTINGS.currency;
+        var formattedBalance = this.formatBalance(this.balance, currency);
+        $('[data-rel="menu-balance"] span').html(formattedBalance);
     }
     
     // Метод для обновления настроек из конфигурации
@@ -336,7 +348,12 @@ class Game{
         if (currency === 'USD') {
             return value.toFixed(2);
         } else {
-            return value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            // Для COP и PYG показываем полное число без десятичных знаков
+            return value.toLocaleString('en-US', { 
+                minimumFractionDigits: 0, 
+                maximumFractionDigits: 0,
+                useGrouping: true
+            });
         }
     }
     
@@ -786,7 +803,7 @@ class Game{
         if (window.trapWSClient && window.trapWSClient.isWebSocketConnected()) {
             window.trapWSClient.startGame();
         }
-        $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
+        this.updateBalanceDisplay(); 
         // Баланс теперь обновляется через API напрямую, не нужно вызывать updateBalanceOnServer
         $('.sector').off().on('click', function(){ 
             // Проверяем, что курица может двигаться
@@ -836,7 +853,7 @@ class Game{
             this.balance = Math.round(this.balance * 100) / 100; // Округляем до 2 знаков
             console.log("WIN: Final balance after award:", this.balance);
             // Принудительно обновляем отображение баланса в интерфейсе
-            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
+            this.updateBalanceDisplay();
             // Баланс теперь обновляется через API напрямую, не нужно вызывать updateBalanceOnServer
             if( SETTINGS.volume.sound ){ SOUNDS.win.play(); } 
             $('#win_modal').css('display', 'flex');
@@ -847,7 +864,7 @@ class Game{
             // При проигрыше также обновляем баланс в интерфейсе
             console.log("LOSE: Balance remains:", this.balance, "(bet was already deducted at start)");
             this.balance = Math.round(this.balance * 100) / 100; // Округляем до 2 знаков
-            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
+            this.updateBalanceDisplay();
             if( SETTINGS.volume.sound ){ SOUNDS.lose.play(); } 
             
             // Не отправляем сообщение в WebSocket - просто используем последнюю ловушку
@@ -1102,7 +1119,7 @@ class Game{
         } 
         // Обновляем отображение баланса только если игра не в состоянии финиша
         if( this.cur_status !== 'finish' && this.balance !== undefined && this.balance !== null ){
-            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
+            this.updateBalanceDisplay();
         } 
 
         var $sector = GAME.getCurrentSector(); 
@@ -1337,7 +1354,7 @@ class Game{
         // Обновляем баланс в интерфейсе после успешного API запроса
         if (data && data.balance !== undefined) {
             this.balance = parseFloat(data.balance);
-            $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+            this.updateBalanceDisplay();
             console.log('Balance updated from API:', this.balance);
         } else if (data && data.new_deposit !== undefined) {
             // Используем new_deposit из API ответа
@@ -1348,16 +1365,16 @@ class Game{
                 console.warn('WARNING: API did not update balance! old_deposit === new_deposit:', data.old_deposit);
                 console.warn('Using local balance instead:', this.balance);
                 // Не обновляем баланс, если API не изменил его
-                $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+                this.updateBalanceDisplay();
             } else {
                 this.balance = apiBalance;
-                $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+                this.updateBalanceDisplay();
                 console.log('Balance updated from API new_deposit:', this.balance);
             }
         } else {
             console.log('No balance field in API response, keeping current balance:', this.balance);
             // Принудительно обновляем отображение баланса в интерфейсе
-            $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+            this.updateBalanceDisplay();
             console.log('Balance display updated to:', this.balance.toFixed(2));
         }
         
@@ -1403,7 +1420,7 @@ class Game{
             
             // Можно добавить уведомление об ошибке
             // Принудительно обновляем отображение баланса в интерфейсе даже при ошибке API
-            $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+            this.updateBalanceDisplay();
             console.log('Balance display updated after API error:', this.balance.toFixed(2));
         });
         
@@ -1462,10 +1479,10 @@ class Game{
                         current_balance: currentBalance
                     });
                     // Обновляем только отображение, но не сам баланс
-                    $('[data-rel="menu-balance"] span').html(currentBalance.toFixed(2));
+                    $('[data-rel="menu-balance"] span').html(this.formatBalance(currentBalance, SETTINGS.currency));
                     } else {
                     this.balance = apiBalance;
-                    $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+                    this.updateBalanceDisplay();
                     console.log('Balance updated from user info API:', this.balance);
                 }
                 
