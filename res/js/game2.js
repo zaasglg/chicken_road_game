@@ -76,14 +76,22 @@ var SOUNDS = {
 
 class Game{
     constructor( $obj ){ 
-        // Получаем только access_token из URL
+        // Получаем параметры из URL
         var urlParams = new URLSearchParams(window.location.search);
         var accessTokenParam = urlParams.get('access_token');
+        var demoMode = urlParams.get('demo') === 'true';
+        var countryParam = urlParams.get('country');
         
         // Сохраняем access_token в глобальной переменной
         if (accessTokenParam) {
             window.ACCESS_TOKEN = accessTokenParam;
             console.log('Access token set from URL:', accessTokenParam);
+        }
+        
+        // Настраиваем демо режим
+        if (demoMode) {
+            console.log('Demo mode activated for country:', countryParam);
+            this.setupDemoMode(countryParam);
         }
         
         // Инициализируем window.GAME_CONFIG
@@ -127,6 +135,103 @@ class Game{
             console.log('No access token - using demo mode');
             // Демо режим - используем дефолтные настройки
             this.updateSettingsFromConfig();
+        }
+    }
+    
+    // Метод для настройки демо режима
+    setupDemoMode(country) {
+        const demoConfigs = {
+            'Colombia': {
+                currency: 'COP',
+                balance: 2500000,
+                quick_bets: [25000, 50000, 100000, 350000],
+                min_bet: 1000,
+                max_bet: 700000,
+                default_bet: 25000
+            },
+            'Paraguay': {
+                currency: 'PYG',
+                balance: 5000000,
+                quick_bets: [50000, 100000, 200000, 700000],
+                min_bet: 1000,
+                max_bet: 1500000,
+                default_bet: 50000
+            },
+            'Ecuador': {
+                currency: 'USD',
+                balance: 500,
+                quick_bets: [0.5, 1, 2, 7],
+                min_bet: 0.5,
+                max_bet: 150,
+                default_bet: 0.5
+            },
+            'default': {
+                currency: 'USD',
+                balance: 500,
+                quick_bets: [0.5, 1, 2, 7],
+                min_bet: 0.5,
+                max_bet: 150,
+                default_bet: 0.5
+            }
+        };
+        
+        const config = demoConfigs[country] || demoConfigs['default'];
+        
+        // Устанавливаем демо конфигурацию
+        window.GAME_CONFIG = {
+            is_real_mode: false,
+            is_demo_mode: true,
+            user_country: country || 'default',
+            currency_symbol: config.currency,
+            initial_balance: config.balance,
+            demo_config: config
+        };
+        
+        // Устанавливаем баланс
+        this.balance = config.balance;
+        
+        // Обновляем настройки игры
+        SETTINGS.currency = config.currency;
+        SETTINGS.min_bet = config.min_bet;
+        SETTINGS.max_bet = config.max_bet;
+        
+        console.log('Demo mode configured:', {
+            country: country,
+            currency: config.currency,
+            balance: config.balance,
+            config: config
+        });
+        
+        // Обновляем интерфейс
+        this.updateDemoInterface(config);
+    }
+    
+    // Метод для обновления интерфейса в демо режиме
+    updateDemoInterface(config) {
+        // Обновляем отображение баланса
+        $('[data-rel="menu-balance"] span').html(this.formatBalance(config.balance, config.currency));
+        
+        // Обновляем SVG символы валюты
+        $('svg use').attr('xlink:href', './res/img/currency.svg#' + config.currency);
+        
+        // Обновляем быстрые ставки
+        this.updateQuickBets(config.currency, config.quick_bets);
+        
+        // Обновляем кнопки MIN/MAX
+        this.updateMinMaxButtons(config);
+        
+        // Обновляем поле ставки
+        $('#bet_size').val(config.default_bet);
+        
+        console.log('Demo interface updated for currency:', config.currency);
+    }
+    
+    // Метод для форматирования баланса в зависимости от валюты
+    formatBalance(balance, currency) {
+        if (currency === 'USD') {
+            return balance.toFixed(2);
+        } else {
+            return balance.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
         }
     }
     
@@ -196,10 +301,10 @@ class Game{
     }
     
     // Метод для обновления быстрых ставок
-    updateQuickBets(currency) {
+    updateQuickBets(currency, customQuickBets = null) {
         var country = window.GAME_CONFIG ? window.GAME_CONFIG.user_country : 'default';
         var betConfig = this.getBetConfigForCountry(country);
-        var quickBets = betConfig.quick_bets;
+        var quickBets = customQuickBets || betConfig.quick_bets;
         
         console.log('Updating quick bets for country:', country, 'currency:', currency, 'bets:', quickBets);
         
@@ -249,10 +354,10 @@ class Game{
     }
     
     // Метод для обновления кнопок MIN/MAX
-    updateMinMaxButtons() {
+    updateMinMaxButtons(customConfig = null) {
         // Получаем значения из API или data-атрибутов HTML
         var country = window.GAME_CONFIG ? window.GAME_CONFIG.user_country : 'default';
-        var betConfig = this.getBetConfigForCountry(country);
+        var betConfig = customConfig || this.getBetConfigForCountry(country);
         
         var minBet = betConfig.min_bet;
         var maxBet = betConfig.max_bet;
