@@ -211,6 +211,9 @@ class Game{
             demo_config: config
         };
         
+        // Устанавливаем глобальную переменную для быстрой проверки
+        window.IS_DEMO_MODE = true;
+        
         // Устанавливаем баланс
         this.balance = config.balance;
         
@@ -230,6 +233,12 @@ class Game{
         
         // Обновляем интерфейс
         this.updateDemoInterface(config);
+        
+        // Принудительно обновляем баланс в интерфейсе
+        setTimeout(() => {
+            this.updateBalanceDisplay();
+            console.log('Balance display updated after demo mode setup:', this.balance);
+        }, 100);
         
         console.log('=== SETUP DEMO MODE END ===');
     }
@@ -279,7 +288,19 @@ class Game{
     updateBalanceDisplay() {
         var currency = SETTINGS.currency;
         var formattedBalance = this.formatBalance(this.balance, currency);
+        console.log('updateBalanceDisplay called:', {
+            balance: this.balance,
+            currency: currency,
+            formatted: formattedBalance,
+            is_demo: window.IS_DEMO_MODE
+        });
         $('[data-rel="menu-balance"] span').html(formattedBalance);
+        
+        // Проверяем, что баланс действительно обновился
+        setTimeout(() => {
+            var actualBalance = $('[data-rel="menu-balance"] span').html();
+            console.log('Actual balance in DOM after update:', actualBalance);
+        }, 50);
     }
     
     // Метод для обновления настроек из конфигурации
@@ -794,6 +815,18 @@ class Game{
         });
     }
     refreshBalance() {
+        // Не обновляем баланс из DOM если активен демо режим
+        if (window.IS_DEMO_MODE || (window.GAME_CONFIG && window.GAME_CONFIG.is_demo_mode)) {
+            console.log('Demo mode active, skipping balance refresh from DOM');
+            return this.balance;
+        }
+        
+        // Дополнительная проверка - если баланс больше 1000, вероятно это демо режим
+        if (this.balance && this.balance > 1000) {
+            console.log('Large balance detected, likely demo mode - skipping refresh');
+            return this.balance;
+        }
+        
         const balanceElement = $('[data-rel="menu-balance"] span');
         const balanceText = balanceElement.length > 0 ? balanceElement.html() : '0';
         this.balance = parseFloat(balanceText) || 0;
@@ -803,8 +836,12 @@ class Game{
     
     start(){ 
         console.log('GAME.start() called');
-        // Refresh balance from DOM before starting
-        this.refreshBalance();
+        // Refresh balance from DOM before starting (only if not in demo mode)
+        if (!window.IS_DEMO_MODE && (!window.GAME_CONFIG || !window.GAME_CONFIG.is_demo_mode)) {
+            this.refreshBalance();
+        } else {
+            console.log('Demo mode active, skipping balance refresh in start()');
+        }
         this.current_bet = +$('#bet_size').val();
         console.log('Current bet:', this.current_bet, 'Balance:', this.balance);
         if( this.current_bet && this.current_bet <= this.balance && this.current_bet > 0 ){ 
@@ -967,7 +1004,7 @@ class Game{
                 $('#overlay').hide(); 
                 $('#win_modal').hide(); 
                 // Принудительно обновляем баланс после завершения игры
-                $('[data-rel="menu-balance"] span').html( GAME.balance.toFixed(2) );
+                GAME.updateBalanceDisplay();
                 GAME.cur_status = "loading"; 
                 // Флаг уже сброшен выше
                 
@@ -1606,10 +1643,14 @@ function open_game(){
     SETTINGS.h = document.querySelector('#game_container').offsetHeight;
     SETTINGS.segw = parseInt( $('#battlefield .sector').css('width') );
     
-    // Refresh balance from DOM when game opens
+    // Refresh balance from DOM when game opens (only if not in demo mode)
     if (GAME && typeof GAME.refreshBalance === 'function') {
-        GAME.refreshBalance();
-        console.log('Balance refreshed in open_game():', GAME.balance);
+        if (!window.IS_DEMO_MODE && (!window.GAME_CONFIG || !window.GAME_CONFIG.is_demo_mode)) {
+            GAME.refreshBalance();
+            console.log('Balance refreshed in open_game():', GAME.balance);
+        } else {
+            console.log('Demo mode active, skipping balance refresh in open_game()');
+        }
     }
     
     $('#splash').addClass('show_modal');
