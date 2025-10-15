@@ -82,21 +82,35 @@ class Game{
         var demoMode = urlParams.get('demo') === 'true';
         var countryParam = urlParams.get('country');
         
+        console.log('URL parameters:', {
+            access_token: accessTokenParam,
+            demo: demoMode,
+            country: countryParam,
+            full_url: window.location.href
+        });
+        
         // Сохраняем access_token в глобальной переменной
         if (accessTokenParam) {
             window.ACCESS_TOKEN = accessTokenParam;
             console.log('Access token set from URL:', accessTokenParam);
         }
         
+        // Инициализируем window.GAME_CONFIG только если он не существует
+        if (!window.GAME_CONFIG) {
+            window.GAME_CONFIG = {};
+        }
+        
         // Настраиваем демо режим
         if (demoMode) {
             console.log('Demo mode activated for country:', countryParam);
             this.setupDemoMode(countryParam);
-        }
-        
-        // Инициализируем window.GAME_CONFIG
-        if (!window.GAME_CONFIG) {
-            window.GAME_CONFIG = {};
+        } else {
+            console.log('Demo mode not activated, checking for fallback...');
+            // Проверяем, есть ли другие признаки демо режима
+            if (!accessTokenParam && (!window.GAME_CONFIG.is_real_mode && !window.GAME_CONFIG.is_demo_mode)) {
+                console.log('No access token and no mode set - activating default demo mode');
+                this.setupDemoMode('default');
+            }
         }
         
         // Устанавливаем дефолтный баланс (будет обновлен из API)
@@ -136,10 +150,19 @@ class Game{
             // Демо режим - используем дефолтные настройки
             this.updateSettingsFromConfig();
         }
+        
+        // Принудительная проверка демо режима в конце
+        if (demoMode && window.GAME_CONFIG && !window.GAME_CONFIG.is_demo_mode) {
+            console.log('Force activating demo mode at the end of constructor');
+            this.setupDemoMode(countryParam);
+        }
     }
     
     // Метод для настройки демо режима
     setupDemoMode(country) {
+        console.log('=== SETUP DEMO MODE START ===');
+        console.log('Country parameter:', country);
+        
         const demoConfigs = {
             'Colombia': {
                 currency: 'COP',
@@ -176,6 +199,7 @@ class Game{
         };
         
         const config = demoConfigs[country] || demoConfigs['default'];
+        console.log('Selected config:', config);
         
         // Устанавливаем демо конфигурацию
         window.GAME_CONFIG = {
@@ -199,20 +223,30 @@ class Game{
             country: country,
             currency: config.currency,
             balance: config.balance,
-            config: config
+            config: config,
+            GAME_CONFIG: window.GAME_CONFIG,
+            SETTINGS_currency: SETTINGS.currency
         });
         
         // Обновляем интерфейс
         this.updateDemoInterface(config);
+        
+        console.log('=== SETUP DEMO MODE END ===');
     }
     
     // Метод для обновления интерфейса в демо режиме
     updateDemoInterface(config) {
+        console.log('=== UPDATE DEMO INTERFACE START ===');
+        console.log('Config:', config);
+        
         // Обновляем отображение баланса
-        $('[data-rel="menu-balance"] span').html(this.formatBalance(config.balance, config.currency));
+        var formattedBalance = this.formatBalance(config.balance, config.currency);
+        console.log('Formatted balance:', formattedBalance);
+        $('[data-rel="menu-balance"] span').html(formattedBalance);
         
         // Обновляем SVG символы валюты
         $('svg use').attr('xlink:href', './res/img/currency.svg#' + config.currency);
+        console.log('Updated currency SVG to:', config.currency);
         
         // Обновляем быстрые ставки
         this.updateQuickBets(config.currency, config.quick_bets);
@@ -224,6 +258,7 @@ class Game{
         $('#bet_size').val(config.default_bet);
         
         console.log('Demo interface updated for currency:', config.currency);
+        console.log('=== UPDATE DEMO INTERFACE END ===');
     }
     
     // Метод для форматирования баланса в зависимости от валюты
@@ -249,6 +284,12 @@ class Game{
     
     // Метод для обновления настроек из конфигурации
     updateSettingsFromConfig() {
+        // Не обновляем настройки если уже установлен демо режим
+        if (window.GAME_CONFIG && window.GAME_CONFIG.is_demo_mode) {
+            console.log('Demo mode already active, skipping updateSettingsFromConfig');
+            return;
+        }
+        
         if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
             // Получаем настройки ставок для страны из API
             var country = window.GAME_CONFIG.user_country || 'default';
