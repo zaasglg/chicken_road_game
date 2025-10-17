@@ -315,6 +315,10 @@ class Game{
             
             console.log('WebSocket coefficients saved:', this.websocketCoefficients);
             console.log('Coefficients array:', Object.values(this.websocketCoefficients));
+            
+            // Принудительно пересоздаем доску с новыми коэффициентами
+            console.log('Recreating board with updated WebSocket coefficients...');
+            this.createBoard();
         }
         
         // Принудительно обновляем уровень если он изменился
@@ -322,9 +326,6 @@ class Game{
             console.log('Level changed from', this.cur_lvl, 'to', data.level);
             this.cur_lvl = data.level;
         }
-        
-        // Пересоздаем доску с новыми данными
-        this.createBoard();
     }
 
     // Метод для обработки данных всех уровней от WebSocket
@@ -951,6 +952,7 @@ class Game{
         if (this.websocketCoefficients && Object.keys(this.websocketCoefficients).length > 0) {
             console.log('Using WebSocket coefficients for board creation');
             console.log('WebSocket coefficients:', this.websocketCoefficients);
+            console.log('WebSocket coefficients array:', Object.values(this.websocketCoefficients));
         } else {
             console.log('No WebSocket coefficients, using SETTINGS fallback');
             var levelCoeffs = SETTINGS.cfs[this.cur_lvl] || SETTINGS.cfs.easy;
