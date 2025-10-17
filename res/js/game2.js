@@ -319,6 +319,8 @@ class Game{
             // Принудительно пересоздаем доску с новыми коэффициентами
             console.log('Recreating board with updated WebSocket coefficients...');
             this.createBoard();
+        } else {
+            console.log('No sectors data received from WebSocket');
         }
         
         // Принудительно обновляем уровень если он изменился
@@ -965,6 +967,10 @@ class Game{
             });
             console.log('Fallback coefficients created for level', this.cur_lvl, ':', this.websocketCoefficients);
         }
+        
+        // Проверяем, что коэффициенты правильно применены
+        console.log('Final coefficients being used:', this.websocketCoefficients);
+        console.log('Final coefficients array:', Object.values(this.websocketCoefficients));
         
         // Проверяем, что ловушки сгенерированы
         if (!this.traps || this.traps.length === 0) {
