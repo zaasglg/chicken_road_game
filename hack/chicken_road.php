@@ -12,21 +12,8 @@ if (!$user_id) {
     exit();
 }
 
-// Get trap coefficient from database
-require_once '../db.php';
-
-try {
-    $stmt = $conn->prepare("SELECT chicken_trap_coefficient FROM users WHERE user_id = :user_id");
-    $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
-    $stmt->execute();
-
-    $trap_coefficient = $stmt->fetchColumn();
-    if ($trap_coefficient === false) {
-        $trap_coefficient = 0.00;
-    }
-} catch (PDOException $e) {
-    $trap_coefficient = 0.00;
-}
+// Set default trap coefficient (no database connection needed)
+$trap_coefficient = 0.00;
 ?>
 
 <!DOCTYPE html>
@@ -612,27 +599,10 @@ this.ws.onmessage = (event) => {
             }
         }
 
-        // Обновление коэффициента в базе данных
+        // Обновление коэффициента (без базы данных)
         function updateCoefficientInDB(coefficient) {
-            fetch('../db.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `action=update_chicken_coefficient&coefficient=${coefficient}&user_id=${userId}`
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.text();
-                })
-                .then(data => {
-                    console.log('Coefficient updated:', data);
-                })
-                .catch(error => {
-                    console.error('Error updating database:', error);
-                });
+            console.log('Coefficient updated locally:', coefficient);
+            // Коэффициент обновляется только локально, без сохранения в БД
         }
 
         // Инициализация при загрузке страницы
