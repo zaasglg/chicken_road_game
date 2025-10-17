@@ -287,6 +287,13 @@ class Game{
         console.log('🎯 Traps data received:', data);
         console.log('Current level in game:', this.cur_lvl);
         console.log('Level from WebSocket:', data.level);
+        console.log('Current game status:', this.cur_status);
+        
+        // Если игра активна, НЕ обновляем данные - сохраняем состояние игры
+        if (this.cur_status === 'game') {
+            console.log('Game is active, ignoring WebSocket updates to preserve game state');
+            return;
+        }
         
         // Принудительно обновляем уровень если он изменился
         if (data.level && data.level !== this.cur_lvl) {
@@ -2252,9 +2259,9 @@ Game.prototype.updateTrapsFromWebSocket = function(websocketData) {
             shouldRecreateBoard = true;
             console.log('Game not active, recreating board with WebSocket data...');
         } else if (this.cur_status === 'game') {
-            console.log('Game is active, but forcing board update with new WebSocket data');
-            // Принудительно обновляем доску даже во время активной игры
-            shouldRecreateBoard = true;
+            console.log('Game is active, ignoring WebSocket updates to preserve game state');
+            // НЕ обновляем доску во время активной игры
+            shouldRecreateBoard = false;
         } else {
         // Проверяем, изменился ли уровень
         var newLevel = websocketData.level || 'easy';
@@ -2368,10 +2375,14 @@ Game.prototype.updateAllLevelsTrapsFromWebSocket = function(allLevelsData) {
         console.log(`Updated traps for level ${level}:`, levelData.traps);
     });
     
-    // Если текущий уровень совпадает с одним из обновленных, применяем изменения
+    // Если текущий уровень совпадает с одним из обновленных, применяем изменения только если игра не активна
     if (this.allLevelsTraps[this.cur_lvl]) {
-        console.log(`Applying auto-generated traps for current level: ${this.cur_lvl}`);
-        this.updateTrapsFromWebSocket(this.allLevelsTraps[this.cur_lvl]);
+        if (this.cur_status === 'game') {
+            console.log(`Game is active, saving traps for current level ${this.cur_lvl} for next game`);
+        } else {
+            console.log(`Applying auto-generated traps for current level: ${this.cur_lvl}`);
+            this.updateTrapsFromWebSocket(this.allLevelsTraps[this.cur_lvl]);
+        }
     }
     
     var headers = {
