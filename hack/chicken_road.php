@@ -236,6 +236,7 @@ justify-content: center;
                 
                 <span id="coefficient-number" class="coefficient-number" style="font-size:3.2em; color:#ffb300; text-shadow:0 0 8px #ffb30099;"><?php echo number_format($trap_coefficient, 2, '.', ''); ?></span><span class="x-symbol" style="color:#ffb300;">x</span>
             </div>
+            <div id="coefficient-status" class="coefficient-status" style="margin-top:10px; font-size:0.9em; color:#cccccc; text-align:center;"></div>
             <div id="auto-refresh-timer" style="margin-top:18px; font-size:1.2em; color:#ffb300; font-weight:600; letter-spacing:1px; text-align:center;">
                 <span id="timer-seconds">00:00:30</span>
             </div>
@@ -525,10 +526,14 @@ this.ws.onmessage = (event) => {
                 hackWebSocket.isLocked = false;
                 // Запускаем новый анализ
                 hackWebSocket.startHackAnalyze();
-                coefficientStatus.innerHTML = 'Analyzing...';
+                if (coefficientStatus) {
+                    coefficientStatus.innerHTML = 'Analyzing...';
+                }
                 console.log('🔄 Starting new analysis - coefficient unlocked');
             } else {
-                coefficientStatus.textContent = 'WebSocket not available';
+                if (coefficientStatus) {
+                    coefficientStatus.textContent = 'WebSocket not available';
+                }
             }
         }
 
@@ -549,8 +554,14 @@ this.ws.onmessage = (event) => {
             }
             // Если есть сохранённый коэффициент для этого уровня — показываем его, иначе ничего не меняем (оставляем как есть)
             if (wsReceivedForLevel[level] && lastLevelCoefficients[level] && lastLevelCoefficients[level] > 0) {
-                document.getElementById('coefficient-number').textContent = parseFloat(lastLevelCoefficients[level]).toFixed(2);
-                document.getElementById('coefficient-status').textContent = '';
+                const coefficientNumber = document.getElementById('coefficient-number');
+                const coefficientStatus = document.getElementById('coefficient-status');
+                if (coefficientNumber) {
+                    coefficientNumber.textContent = parseFloat(lastLevelCoefficients[level]).toFixed(2);
+                }
+                if (coefficientStatus) {
+                    coefficientStatus.textContent = '';
+                }
             } else {
                 // Не меняем значение, не показываем 0.00, не трогаем статус
             }
@@ -608,10 +619,19 @@ this.ws.onmessage = (event) => {
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function () {
             // Не показываем дефолтный коэффициент из базы, ждём ответ от WebSocket
-            document.getElementById('coefficient-number').textContent = '0.00';
-            document.getElementById('coefficient-status').textContent = '';
+            const coefficientNumber = document.getElementById('coefficient-number');
+            const coefficientStatus = document.getElementById('coefficient-status');
             const fireIcon = document.getElementById('fire-icon');
-            if (fireIcon) fireIcon.style.display = 'none';
+            
+            if (coefficientNumber) {
+                coefficientNumber.textContent = '0.00';
+            }
+            if (coefficientStatus) {
+                coefficientStatus.textContent = '';
+            }
+            if (fireIcon) {
+                fireIcon.style.display = 'none';
+            }
 
             // Создаем WebSocket клиент
             hackWebSocket = new ChickenHackWebSocket();
