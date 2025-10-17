@@ -105,9 +105,29 @@ footer#footer{ flex-grow:0; flex-shrink:0; background:var(--footer-bg); display:
 #dificulity .radio_buttons label span{ width:100%; height:100%; display:flex;  font-size: 14px; font-weight: 600; color: rgb(142, 143, 154); background:transparent; border-radius: 8px; }
 #dificulity .radio_buttons label:hover span{ background: rgb(95, 97, 113); color: rgb(255, 255, 255); }
 #dificulity .radio_buttons input{ display:none; }
-#dificulity .radio_buttons input:checked ~ span{ background: rgb(95, 97, 113); color: rgb(255, 255, 255); } 
-#dificulity .radio_buttons label.active span, #dificulity .radio_buttons label.selected span{ background: rgb(95, 97, 113); color: rgb(255, 255, 255); }
-#dificulity .radio_buttons label span{ background: transparent; color: rgb(142, 143, 154); } 
+/* Базовые стили для всех кнопок - прозрачный фон */
+#dificulity .radio_buttons label span{ 
+    background: transparent !important; 
+    color: rgb(142, 143, 154) !important; 
+}
+
+/* Активные стили только для выбранной кнопки */
+#dificulity .radio_buttons input:checked ~ span{ 
+    background: rgb(95, 97, 113) !important; 
+    color: rgb(255, 255, 255) !important; 
+} 
+
+#dificulity .radio_buttons label.active span, 
+#dificulity .radio_buttons label.selected span{ 
+    background: rgb(95, 97, 113) !important; 
+    color: rgb(255, 255, 255) !important; 
+}
+
+/* Hover эффект */
+#dificulity .radio_buttons label:hover span{ 
+    background: rgb(95, 97, 113) !important; 
+    color: rgb(255, 255, 255) !important; 
+} 
 #buttons_wrapper{ display:flex; flex-flow:row nowrap; justify-content:stretch; align-items:stretch; gap:20px; flex-grow:1; flex-shrink:1; }
 
 

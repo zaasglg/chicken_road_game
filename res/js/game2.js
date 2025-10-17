@@ -138,6 +138,9 @@ class Game{
         // Инициализируем кнопки уровней
         this.initializeLevelButtons();
         
+        // Принудительно сбрасываем все кнопки при инициализации
+        this.resetAllLevelButtons();
+        
         // Проверяем кнопки уровней через некоторое время (возможно, они загружаются позже)
         setTimeout(() => {
             console.log('=== DELAYED LEVEL BUTTONS CHECK ===');
@@ -395,6 +398,28 @@ class Game{
             console.log('setLevel: Added active classes to:', $selectedLabel.find('span').text());
             console.log('Radio button active classes updated for level:', level);
             
+            // Дополнительно принудительно сбрасываем все классы и устанавливаем только нужный
+            $('input[name="difficulity"]').prop('checked', false);
+            $(`input[name="difficulity"][value="${level}"]`).prop('checked', true);
+            
+            // Убираем все активные классы со всех лейблов - более агрессивно
+            $('#dificulity .radio_buttons label').removeClass('active selected');
+            $('#dificulity .radio_buttons label span').css({
+                'background': 'transparent',
+                'color': 'rgb(142, 143, 154)'
+            });
+            
+            // Добавляем активные классы только к выбранному лейблу
+            var $selectedLabel = $(`input[name="difficulity"][value="${level}"]`).closest('label');
+            $selectedLabel.addClass('active selected');
+            $selectedLabel.find('span').css({
+                'background': 'rgb(95, 97, 113)',
+                'color': 'rgb(255, 255, 255)'
+            });
+            
+            console.log('Force updated radio button states for level:', level);
+            console.log('Selected label:', $selectedLabel.find('span').text());
+            
             // Принудительно пересоздаем доску с новыми коэффициентами для уровня
             console.log('Forcing board recreation for level:', level);
             this.createBoard();
@@ -413,6 +438,33 @@ class Game{
             
             console.log('=== SETLEVEL COMPLETED ===');
         };
+    }
+    
+    // Метод для принудительного сброса всех кнопок уровней
+    resetAllLevelButtons() {
+        console.log('=== RESETTING ALL LEVEL BUTTONS ===');
+        
+        // Сбрасываем все radio кнопки
+        $('input[name="difficulity"]').prop('checked', false);
+        
+        // Убираем все активные классы
+        $('#dificulity .radio_buttons label').removeClass('active selected');
+        
+        // Принудительно устанавливаем прозрачный фон для всех кнопок
+        $('#dificulity .radio_buttons label span').css({
+            'background': 'transparent',
+            'color': 'rgb(142, 143, 154)'
+        });
+        
+        // Устанавливаем только Easy как активную
+        $('input[name="difficulity"][value="easy"]').prop('checked', true);
+        $('input[name="difficulity"][value="easy"]').closest('label').addClass('active selected');
+        $('input[name="difficulity"][value="easy"]').closest('label').find('span').css({
+            'background': 'rgb(95, 97, 113)',
+            'color': 'rgb(255, 255, 255)'
+        });
+        
+        console.log('All level buttons reset, Easy set as active');
     }
     
     // Метод для инициализации кнопок уровней
