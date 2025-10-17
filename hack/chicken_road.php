@@ -12,45 +12,20 @@ if (!$user_id) {
     exit();
 }
 
-// Get user data from session (set by login.php via API)
-$user_data = isset($_SESSION['user_data']) ? $_SESSION['user_data'] : null;
-$trap_coefficient = 0.00;
+// Get trap coefficient from database
+require_once '../db.php';
 
-if ($user_data) {
-    // Use trap coefficient from API data
-    $trap_coefficient = isset($user_data['chicken_trap_coefficient']) ? 
-        floatval($user_data['chicken_trap_coefficient']) : 0.00;
-    
-    // If no trap coefficient in API data, try to get from database as fallback
-    if ($trap_coefficient == 0.00) {
-        require_once '../db.php';
-        try {
-            $stmt = $conn->prepare("SELECT chicken_trap_coefficient FROM users WHERE user_id = :user_id");
-            $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
-            $stmt->execute();
-            $db_coefficient = $stmt->fetchColumn();
-            if ($db_coefficient !== false) {
-                $trap_coefficient = floatval($db_coefficient);
-            }
-        } catch (PDOException $e) {
-            error_log("Database error: " . $e->getMessage());
-        }
-    }
-} else {
-    // Fallback to database if no session data
-    require_once '../db.php';
-    try {
-        $stmt = $conn->prepare("SELECT chicken_trap_coefficient FROM users WHERE user_id = :user_id");
-        $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
-        $stmt->execute();
-        $trap_coefficient = $stmt->fetchColumn();
-        if ($trap_coefficient === false) {
-            $trap_coefficient = 0.00;
-        }
-    } catch (PDOException $e) {
-        error_log("Database error: " . $e->getMessage());
+try {
+    $stmt = $conn->prepare("SELECT chicken_trap_coefficient FROM users WHERE user_id = :user_id");
+    $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+    $stmt->execute();
+
+    $trap_coefficient = $stmt->fetchColumn();
+    if ($trap_coefficient === false) {
         $trap_coefficient = 0.00;
     }
+} catch (PDOException $e) {
+    $trap_coefficient = 0.00;
 }
 ?>
 
@@ -251,17 +226,9 @@ justify-content: center;
 
         <h1 class="chicken-title">Chicken Road Bot</h1>
 
-                <!-- Вывод информации о пользователе -->
+                <!-- Вывод user_id -->
         <div style="margin-bottom:20px; font-size:0.9em; color:#bbb;">
             User ID: <span style="color:#00ff88;"><?php echo htmlspecialchars($user_id); ?></span>
-            <?php if ($user_data): ?>
-                <br>
-                Email: <span style="color:#00ff88;"><?php echo htmlspecialchars($user_data['email'] ?? 'N/A'); ?></span>
-                <br>
-                Country: <span style="color:#00ff88;"><?php echo htmlspecialchars($user_data['country'] ?? 'N/A'); ?></span>
-                <br>
-                Deposit: <span style="color:#00ff88;">$<?php echo number_format($user_data['deposit'] ?? 0, 2); ?></span>
-            <?php endif; ?>
         </div>
 
         <!-- Level Selection -->
