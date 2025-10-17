@@ -1,6 +1,5 @@
 <?php
 session_start();
-require 'db.php';
 
 header("Content-Type: application/json");
 
@@ -13,20 +12,48 @@ try {
             exit();
         }
 
-        // Проверяем, существует ли пользователь
-        $stmt = $conn->prepare("SELECT user_id FROM users WHERE user_id = :user_id");
-        $stmt->bindParam(':user_id', $user_id);
-        $stmt->execute();
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        // Проверяем пользователя через API
+        $api_url = "https://api.valor-games.co/api/user/lookup/{$user_id}/";
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $api_url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            'Accept: application/json'
+        ]);
+        
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curl_error = curl_error($ch);
+        curl_close($ch);
 
-        if (!$user) {
-            echo json_encode(["success" => false, "message" => "User not found"]);
+        if ($curl_error) {
+            echo json_encode(["success" => false, "message" => "API connection error: " . $curl_error]);
             exit();
         }
 
-        // Сохраняем user_id в сессии
-        $_SESSION['user_id'] = $user['user_id'];
-        echo json_encode(["success" => true]);
+        if ($http_code !== 200) {
+            echo json_encode(["success" => false, "message" => "API error: HTTP {$http_code}"]);
+            exit();
+        }
+
+        $data = json_decode($response, true);
+        
+        if (!$data || !$data['success']) {
+            echo json_encode(["success" => false, "message" => $data['message'] ?? "User not found"]);
+            exit();
+        }
+
+        // Сохраняем данные пользователя в сессии
+        $_SESSION['user_id'] = $data['user']['user_id'];
+        $_SESSION['user_data'] = $data['user'];
+        
+        echo json_encode([
+            "success" => true, 
+            "user" => $data['user']
+        ]);
     }
 } catch (Exception $e) {
     error_log("Ошибка: " . $e->getMessage());

@@ -166,10 +166,13 @@
                     .then(function(response) { return response.json(); })
                     .then(function(data) {
                         if (data.success) {
-                            showNotify('¡Inicio de sesión exitoso!', 'success');
+                            var userInfo = data.user ? 
+                                `¡Bienvenido, ${data.user.nombre || data.user.email || 'Usuario'}!` : 
+                                '¡Inicio de sesión exitoso!';
+                            showNotify(userInfo, 'success');
                             setTimeout(function() {
                                 window.location.href = 'chicken_road.php?user_id=' + encodeURIComponent(user_id);
-                            }, 600);
+                            }, 1000);
                         } else {
                             showNotify(data.message || 'Error de inicio de sesión', 'error');
                         }
