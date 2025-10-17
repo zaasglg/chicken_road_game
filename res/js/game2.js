@@ -191,7 +191,7 @@ class Game{
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const host = window.location.hostname;
             const port = window.location.port || (protocol === 'wss:' ? '443' : '80');
-            const wsUrl = `${protocol}//${host}:8080/ws/`;
+            const wsUrl = "wss://chicken.valor-games.com/ws/";
             
             console.log('Connecting to WebSocket:', wsUrl);
             this.ws = new WebSocket(wsUrl);
