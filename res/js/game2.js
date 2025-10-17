@@ -114,7 +114,7 @@ class Game{
         }
         
         // Устанавливаем дефолтный баланс (будет обновлен из API)
-        this.balance = SETTINGS.balance;
+        this.balance = SETTINGS.balance || 500; // Fallback к 500 если SETTINGS.balance undefined
         
         console.log('Game initialized with access token:', !!window.ACCESS_TOKEN);
         
@@ -134,6 +134,20 @@ class Game{
         this.create(); 
         this.bind(); 
         $('#game_container').css('min-height', parseInt( $('#main').css('height') )+'px' );
+        
+        // Инициализируем кнопки уровней
+        this.initializeLevelButtons();
+        
+        // Проверяем кнопки уровней через некоторое время (возможно, они загружаются позже)
+        setTimeout(() => {
+            console.log('=== DELAYED LEVEL BUTTONS CHECK ===');
+            this.initializeLevelButtons();
+        }, 2000);
+        
+        setTimeout(() => {
+            console.log('=== SECOND DELAYED LEVEL BUTTONS CHECK ===');
+            this.initializeLevelButtons();
+        }, 5000);
         
         // Получаем актуальную информацию о пользователе при инициализации
         if (window.ACCESS_TOKEN) {
@@ -155,6 +169,301 @@ class Game{
         if (demoMode && window.GAME_CONFIG && !window.GAME_CONFIG.is_demo_mode) {
             console.log('Force activating demo mode at the end of constructor');
             this.setupDemoMode(countryParam);
+        }
+        
+        // Инициализируем WebSocket подключение
+        this.ws = null;
+        this.isWebSocketConnected = false;
+        this.reconnectAttempts = 0;
+        
+        // Подключаемся к WebSocket серверу
+        this.connectWebSocket();
+        
+        // Запускаем периодическое получение ловушек от WebSocket
+        this.startWebSocketTrapPolling();
+    }
+    
+    // Метод для подключения к WebSocket серверу
+    connectWebSocket() {
+        try {
+            console.log('🔌 Connecting to WebSocket server...');
+            // Определяем URL WebSocket сервера
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.hostname;
+            const port = window.location.port || (protocol === 'wss:' ? '443' : '80');
+            const wsUrl = `${protocol}//${host}:8080/ws/`;
+            
+            console.log('Connecting to WebSocket:', wsUrl);
+            this.ws = new WebSocket(wsUrl);
+            
+            this.ws.onopen = () => {
+                console.log('✅ Connected to WebSocket server');
+                this.isWebSocketConnected = true;
+                this.reconnectAttempts = 0;
+                
+                // Устанавливаем уровень по умолчанию
+                this.setWebSocketLevel(this.cur_lvl);
+                
+                // Запрашиваем последние ловушки
+                this.requestWebSocketTraps();
+            };
+
+            this.ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('📨 WebSocket message received:', data);
+                    
+                    if (data.type === 'traps') {
+                        this.handleWebSocketTrapsData(data);
+                    } else if (data.type === 'traps_all_levels') {
+                        this.handleWebSocketAllLevelsData(data);
+                    }
+                } catch (error) {
+                    console.error('❌ Error parsing WebSocket message:', error);
+                }
+            };
+
+            this.ws.onclose = () => {
+                console.log('📱 Disconnected from WebSocket server');
+                this.isWebSocketConnected = false;
+                this.attemptWebSocketReconnect();
+            };
+
+            this.ws.onerror = (error) => {
+                console.error('❌ WebSocket connection error:', error);
+            };
+
+        } catch (error) {
+            console.error('❌ Failed to connect to WebSocket:', error);
+            this.attemptWebSocketReconnect();
+        }
+    }
+
+    // Метод для переподключения к WebSocket
+    attemptWebSocketReconnect() {
+        if (this.reconnectAttempts < 5) {
+            this.reconnectAttempts++;
+            console.log(`🔄 Attempting to reconnect (${this.reconnectAttempts}/5)...`);
+            
+            setTimeout(() => {
+                this.connectWebSocket();
+            }, 3000);
+        } else {
+            console.log('❌ Max reconnection attempts reached');
+        }
+    }
+
+    // Метод для установки уровня в WebSocket
+    setWebSocketLevel(level) {
+        this.cur_lvl = level;
+        if (this.isWebSocketConnected && this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.sendWebSocketMessage({
+                type: 'set_level',
+                level: level
+            });
+        }
+    }
+
+    // Метод для запроса ловушек от WebSocket
+    requestWebSocketTraps() {
+        if (this.isWebSocketConnected && this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.sendWebSocketMessage({
+                type: 'request_traps'
+            });
+        }
+    }
+
+    // Метод для отправки сообщения в WebSocket
+    sendWebSocketMessage(data) {
+        if (this.isWebSocketConnected && this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify(data));
+        } else {
+            console.error('❌ WebSocket not connected, cannot send message');
+        }
+    }
+
+    // Метод для обработки данных ловушек от WebSocket
+    handleWebSocketTrapsData(data) {
+        console.log('🎯 Traps data received:', data);
+        console.log('Current level in game:', this.cur_lvl);
+        console.log('Level from WebSocket:', data.level);
+        
+        // Принудительно обновляем уровень если он изменился
+        if (data.level && data.level !== this.cur_lvl) {
+            console.log('Level changed from', this.cur_lvl, 'to', data.level);
+            this.cur_lvl = data.level;
+            
+            // Принудительно обновляем коэффициенты для нового уровня
+            console.log('Forcing coefficient update for new level:', data.level);
+            var levelCoeffs = SETTINGS.cfs[data.level] || SETTINGS.cfs.easy;
+            this.websocketCoefficients = {};
+            levelCoeffs.forEach((coeff, index) => {
+                this.websocketCoefficients[index] = coeff;
+            });
+            console.log('Updated coefficients for level', data.level, ':', this.websocketCoefficients);
+        }
+        
+        this.updateTrapsFromWebSocket(data);
+    }
+
+    // Метод для обработки данных всех уровней от WebSocket
+    handleWebSocketAllLevelsData(data) {
+        console.log('🎯 All levels traps data received:', data);
+        this.updateAllLevelsTrapsFromWebSocket(data.traps);
+    }
+
+    // Метод для периодического получения ловушек от WebSocket
+    startWebSocketTrapPolling() {
+        console.log('Starting WebSocket trap polling...');
+        
+        // Запрашиваем ловушки каждые 30 секунд
+        this.trapPollingInterval = setInterval(() => {
+            if (this.isWebSocketConnected) {
+                console.log('Polling for latest traps from WebSocket...');
+                this.requestWebSocketTraps();
+            } else {
+                console.log('WebSocket not connected, skipping trap polling');
+            }
+        }, 30000); // 30 секунд
+        
+        // Также запрашиваем ловушки при смене уровня
+        this.originalSetLevel = this.setLevel;
+        this.setLevel = (level) => {
+            console.log('=== SETLEVEL CALLED ===');
+            console.log('Level changed to:', level);
+            console.log('Previous level:', this.cur_lvl);
+            this.cur_lvl = level;
+            
+            // Очищаем существующие WebSocket данные для нового уровня
+            this.websocketCoefficients = {};
+            this.traps = [];
+            this.localTraps = [];
+            this.pendingWebSocketData = null;
+            console.log('Cleared old data for new level');
+            
+            // Сразу обновляем локальные коэффициенты для нового уровня
+            var levelCoeffs = SETTINGS.cfs[level] || SETTINGS.cfs.easy;
+            console.log('Level coefficients from SETTINGS:', levelCoeffs);
+            this.websocketCoefficients = {};
+            levelCoeffs.forEach((coeff, index) => {
+                this.websocketCoefficients[index] = coeff;
+            });
+            console.log('Local coefficients updated for level', level, ':', this.websocketCoefficients);
+            
+            if (this.isWebSocketConnected) {
+                console.log('WebSocket connected, requesting traps for level:', level);
+                this.setWebSocketLevel(level);
+                this.requestWebSocketTraps();
+            } else {
+                // Если WebSocket не подключен, генерируем локальные ловушки для нового уровня
+                console.log('WebSocket not connected, generating local traps for level:', level);
+                this.generateFallbackTraps();
+            }
+            
+            // Обновляем активные классы для radio кнопок
+            $('input[name="difficulity"]').each(function(){
+                var $label = $(this).closest('label');
+                $label.removeClass('active selected');
+                console.log('setLevel: Removed active classes from:', $label.find('span').text());
+            });
+            var $selectedLabel = $(`input[name="difficulity"][value="${level}"]`).closest('label');
+            $selectedLabel.addClass('active selected');
+            console.log('setLevel: Added active classes to:', $selectedLabel.find('span').text());
+            console.log('Radio button active classes updated for level:', level);
+            
+            // Принудительно пересоздаем доску с новыми коэффициентами для уровня
+            console.log('Forcing board recreation for level:', level);
+            this.createBoard();
+            
+            // Дополнительно принудительно обновляем коэффициенты
+            setTimeout(() => {
+                console.log('=== FORCING COEFFICIENT UPDATE AFTER SETLEVEL ===');
+                var levelCoeffs = SETTINGS.cfs[level] || SETTINGS.cfs.easy;
+                this.websocketCoefficients = {};
+                levelCoeffs.forEach((coeff, index) => {
+                    this.websocketCoefficients[index] = coeff;
+                });
+                console.log('Final coefficients for level', level, ':', this.websocketCoefficients);
+                this.createBoard();
+            }, 100);
+            
+            console.log('=== SETLEVEL COMPLETED ===');
+        };
+    }
+    
+    // Метод для инициализации кнопок уровней
+    initializeLevelButtons() {
+        console.log('=== INITIALIZING LEVEL BUTTONS ===');
+        
+        // Проверяем какие кнопки уровней существуют в DOM
+        var levelSelectors = [
+            '.level-btn',
+            '[data-level]',
+            '.difficulty-btn',
+            '.level-button',
+            'button[data-level]',
+            '.btn[data-level]'
+        ];
+        
+        levelSelectors.forEach(function(selector) {
+            var elements = $(selector);
+            console.log(`Selector "${selector}": found ${elements.length} elements`);
+            if (elements.length > 0) {
+                elements.each(function(index) {
+                    var level = $(this).data('level') || $(this).attr('data-level');
+                    console.log(`  Element ${index}: level="${level}", text="${$(this).text()}"`);
+                });
+            }
+        });
+        
+        // Устанавливаем активную radio кнопку для текущего уровня
+        $('input[name="difficulity"]').prop('checked', false);
+        
+        // Снимаем активные классы со всех radio кнопок
+        $('input[name="difficulity"]').each(function(){
+            var $label = $(this).closest('label');
+            $label.removeClass('active selected');
+            console.log('Initialization: Removed active classes from:', $label.find('span').text());
+        });
+        
+        var currentLevelRadio = $(`input[name="difficulity"][value="${this.cur_lvl}"]`);
+        if (currentLevelRadio.length > 0) {
+            currentLevelRadio.prop('checked', true);
+            // Добавляем активный класс к выбранной кнопке
+            var $selectedLabel = currentLevelRadio.closest('label');
+            $selectedLabel.addClass('active selected');
+            console.log('Initialization: Added active classes to:', $selectedLabel.find('span').text());
+            console.log('Active level radio button set for:', this.cur_lvl);
+        } else {
+            console.log('No level radio button found for level:', this.cur_lvl);
+        }
+        
+        // Также обновляем обычные кнопки если они есть
+        $('.level-btn').removeClass('selected').css({
+            'background': '#333',
+            'color': '#fff',
+            'border-color': '#666'
+        });
+        
+        var currentLevelBtn = $(`.level-btn[data-level="${this.cur_lvl}"]`);
+        if (currentLevelBtn.length > 0) {
+            currentLevelBtn.addClass('selected').css({
+                'background': '#00ff88',
+                'color': '#000',
+                'border-color': '#00ff88'
+            });
+            console.log('Active level button set for:', this.cur_lvl);
+        }
+        
+        console.log('Level buttons initialized for level:', this.cur_lvl);
+        console.log('=== LEVEL BUTTONS INITIALIZATION COMPLETED ===');
+    }
+    
+    // Метод для остановки периодического получения ловушек
+    stopWebSocketTrapPolling() {
+        if (this.trapPollingInterval) {
+            clearInterval(this.trapPollingInterval);
+            this.trapPollingInterval = null;
         }
     }
     
@@ -216,6 +525,7 @@ class Game{
         
         // Устанавливаем баланс
         this.balance = config.balance;
+        console.log('Balance set in setupDemoMode:', this.balance);
         
         // Обновляем настройки игры
         SETTINGS.currency = config.currency;
@@ -235,10 +545,7 @@ class Game{
         this.updateDemoInterface(config);
         
         // Принудительно обновляем баланс в интерфейсе
-        setTimeout(() => {
-            this.updateBalanceDisplay();
-            console.log('Balance display updated after demo mode setup:', this.balance);
-        }, 100);
+        this.updateBalanceDisplay();
         
         console.log('=== SETUP DEMO MODE END ===');
     }
@@ -251,7 +558,7 @@ class Game{
         // Обновляем отображение баланса
         var formattedBalance = this.formatBalance(config.balance, config.currency);
         console.log('Formatted balance:', formattedBalance);
-        $('[data-rel="menu-balance"] span').html(formattedBalance);
+        // Не обновляем здесь, чтобы избежать дублирования с updateBalanceDisplay
         
         // Обновляем SVG символы валюты
         $('svg use').attr('xlink:href', './res/img/currency.svg#' + config.currency);
@@ -288,19 +595,19 @@ class Game{
     updateBalanceDisplay() {
         var currency = SETTINGS.currency;
         var formattedBalance = this.formatBalance(this.balance, currency);
-        console.log('updateBalanceDisplay called:', {
-            balance: this.balance,
-            currency: currency,
-            formatted: formattedBalance,
-            is_demo: window.IS_DEMO_MODE
-        });
-        $('[data-rel="menu-balance"] span').html(formattedBalance);
         
-        // Проверяем, что баланс действительно обновился
-        setTimeout(() => {
-            var actualBalance = $('[data-rel="menu-balance"] span').html();
-            console.log('Actual balance in DOM after update:', actualBalance);
-        }, 50);
+        // Обновляем только если значение изменилось
+        var currentDisplay = $('[data-rel="menu-balance"] span').html();
+        if (currentDisplay !== formattedBalance) {
+            console.log('Updating balance display:', {
+                old: currentDisplay,
+                new: formattedBalance,
+                balance: this.balance,
+                currency: currency,
+                is_demo: window.IS_DEMO_MODE
+            });
+            $('[data-rel="menu-balance"] span').html(formattedBalance);
+        }
     }
     
     // Метод для обновления настроек из конфигурации
@@ -477,16 +784,50 @@ class Game{
     } 
     // Генерируем локальные трапы на основе коэффициентов
     generateLocalTraps() {
-        // Сначала пытаемся использовать WebSocket для генерации ловушек
-        if (window.trapWSClient && window.trapWSClient.isWebSocketConnected()) {
-            console.log('Using WebSocket for trap generation');
-            this.requestTrapsFromWebSocket();
+        // Проверяем, есть ли уже WebSocket данные
+        if (this.websocketCoefficients && Object.keys(this.websocketCoefficients).length > 0 && this.traps && this.traps.length > 0) {
+            console.log('WebSocket data already available, skipping generation');
             return;
         }
         
-        console.log('WebSocket not connected - waiting for connection...');
-        // Ждем подключения к WebSocket
-        this.waitForWebSocketConnection();
+        // Сначала пытаемся использовать WebSocket для генерации ловушек
+        if (this.isWebSocketConnected) {
+            console.log('Using WebSocket for trap generation');
+            this.requestWebSocketTraps();
+            return;
+        }
+        
+        console.log('WebSocket not connected - generating local traps as fallback');
+        // Генерируем локальные ловушки как fallback
+        this.generateFallbackTraps();
+    }
+    
+    // Генерируем fallback ловушки локально
+    generateFallbackTraps() {
+        console.log('Generating fallback traps locally...');
+        
+        // Генерируем случайную ловушку
+        var levelCoeffs = SETTINGS.cfs[this.cur_lvl] || SETTINGS.cfs.easy;
+        var maxTrap = Math.floor(Math.random() * levelCoeffs.length) + 1;
+        var trapIndex = Math.random() > 0.5 ? maxTrap : 0; // 50% шанс ловушки
+        
+        this.traps = trapIndex > 0 ? [trapIndex] : [];
+        this.localTraps = this.traps;
+        
+        console.log('Fallback traps generated:', this.traps);
+        
+        // Создаем fallback коэффициенты
+        this.websocketCoefficients = {};
+        levelCoeffs.forEach((coeff, index) => {
+            this.websocketCoefficients[index] = coeff;
+        });
+        
+        console.log('Fallback coefficients set for level', this.cur_lvl, ':', this.websocketCoefficients);
+        
+        // Создаем доску с fallback данными только если она еще не была создана
+        if (this.cur_status === 'loading' || this.cur_status === 'ready') {
+            this.createBoard();
+        }
     }
     
     
@@ -495,9 +836,9 @@ class Game{
         
         // Проверяем подключение каждые 500ms
         const checkConnection = () => {
-            if (window.trapWSClient && window.trapWSClient.isWebSocketConnected()) {
+            if (this.isWebSocketConnected) {
                 console.log('WebSocket connected! Requesting traps...');
-                this.requestTrapsFromWebSocket();
+                this.requestWebSocketTraps();
             } else {
                 // Продолжаем ждать подключения
                 setTimeout(checkConnection, 500);
@@ -508,41 +849,32 @@ class Game{
     }
     
     getCoefficientArray() {
-        // ПРИОРИТЕТ: Используем коэффициенты из WebSocket
+        // Используем коэффициенты из WebSocket
         if (this.websocketCoefficients && Object.keys(this.websocketCoefficients).length > 0) {
-            console.log('Using WebSocket coefficients array:', Object.values(this.websocketCoefficients));
             return Object.values(this.websocketCoefficients);
         }
         
-        // FALLBACK: Если WebSocket коэффициенты недоступны, используем коэффициенты из SETTINGS.cfs
-        console.log('WebSocket coefficients not available, using SETTINGS.cfs coefficients as fallback');
+        // Fallback: используем локальные коэффициенты
         var levelCoeffs = SETTINGS.cfs[this.cur_lvl] || SETTINGS.cfs.easy;
-        
-        console.log('Using SETTINGS.cfs coefficients for level', this.cur_lvl, ':', levelCoeffs);
         return levelCoeffs;
     }
     
     getCoefficient(step) {
         // Проверяем на отрицательные значения
         if (step < 0) {
-            console.log(`Invalid step ${step}, using first coefficient`);
             step = 0;
         }
         
-        // ПРИОРИТЕТ: Используем коэффициент из WebSocket
+        // Используем коэффициент из WebSocket
         if (this.websocketCoefficients && this.websocketCoefficients[step] !== undefined) {
-            console.log(`Using WebSocket coefficient for step ${step}:`, this.websocketCoefficients[step]);
             return this.websocketCoefficients[step];
         }
         
-        // FALLBACK: Если WebSocket коэффициент недоступен, используем коэффициент из SETTINGS.cfs
-        console.log(`WebSocket coefficient not available for step ${step}, using SETTINGS.cfs coefficient as fallback`);
+        // Fallback: используем локальный коэффициент
         var levelCoeffs = SETTINGS.cfs[this.cur_lvl] || SETTINGS.cfs.easy;
-        
         if (step < levelCoeffs.length) {
             return levelCoeffs[step];
         } else {
-            // Если шаг выходит за пределы массива, возвращаем последний доступный коэффициент
             return levelCoeffs[levelCoeffs.length - 1];
         }
     }
@@ -575,9 +907,9 @@ class Game{
         this.wrap.html('').css('left', 0);
         
         // Проверяем WebSocket подключение
-        if (window.trapWSClient && window.trapWSClient.isWebSocketConnected()) {
+        if (this.isWebSocketConnected) {
             console.log('Using WebSocket for trap generation');
-            this.requestTrapsFromWebSocket();
+            this.requestWebSocketTraps();
             // Создаем поле сразу, ловушки обновятся через WebSocket
             this.createBoard();
         } else {
@@ -590,24 +922,28 @@ class Game{
         console.log('Game board creation completed');
     }
     createBoard() {
-        // Проверяем, есть ли данные от WebSocket
-        if (this.websocketCoefficients && Object.keys(this.websocketCoefficients).length > 0) {
-            console.log('Using WebSocket coefficients for board creation');
-        } else {
-            console.log('No WebSocket coefficients available, using fallback');
-        }
+        console.log('=== CREATEBOARD CALLED ===');
+        console.log('Current level:', this.cur_lvl);
+        console.log('WebSocket coefficients available:', !!(this.websocketCoefficients && Object.keys(this.websocketCoefficients).length > 0));
+        
+        // Всегда используем коэффициенты для текущего уровня из SETTINGS
+        var levelCoeffs = SETTINGS.cfs[this.cur_lvl] || SETTINGS.cfs.easy;
+        console.log('Level coefficients from SETTINGS for', this.cur_lvl, ':', levelCoeffs);
+        
+        // Принудительно обновляем коэффициенты для текущего уровня
+        this.websocketCoefficients = {};
+        levelCoeffs.forEach((coeff, index) => {
+            this.websocketCoefficients[index] = coeff;
+        });
+        console.log('Forced coefficients update for level', this.cur_lvl, ':', this.websocketCoefficients);
         
         // Проверяем, что ловушки сгенерированы
         if (!this.traps || this.traps.length === 0) {
-            console.log('No traps generated, waiting for WebSocket...');
-            // Устанавливаем пустые ловушки, они обновятся через WebSocket
+            // Используем пустой массив ловушек
             this.traps = [];
         }
         
         var $arr = this.getCoefficientArray(); 
-        
-        // Коэффициенты теперь всегда доступны из getCoefficientArray()
-        console.log('Coefficients loaded:', $arr.length, 'sectors');
         
         this.stp = 0; // Reset step on new board
         this.alife = 0;
@@ -624,20 +960,26 @@ class Game{
                                 <div class="border"></div>
                             </div>`); 
         var flameSegments = [];
+        console.log('Current traps array:', this.traps);
+        console.log('Current localTraps array:', this.localTraps);
+        
         if (this.traps && this.traps.length > 0) {
             flameSegments = this.traps;
             this.fire = this.traps[0];
+            console.log('Using traps from this.traps:', flameSegments);
         } else {
             // Генерируем локальные трапы если их нет
             this.generateLocalTraps();
             if (this.traps && this.traps.length > 0) {
                 this.fire = this.traps[0];
                 flameSegments = this.traps;
+                console.log('Using traps from generateLocalTraps:', flameSegments);
             } else {
                 var chance = SETTINGS.chance[this.cur_lvl];
                 var maxTrap = chance[Math.random() > 0.95 ? 1 : 0];
                 this.fire = Math.ceil(Math.random() * maxTrap);
                 flameSegments = [this.fire];
+                console.log('Using random traps:', flameSegments);
             }
         }
         
@@ -646,9 +988,10 @@ class Game{
         for( var $i=0; $i<$arr.length; $i++ ){
             // Determine if this sector is a flame - сектора нумеруются с 1, но массив с 0
             var sectorId = $i + 1;
+            // Проверяем ловушки: flameSegments содержит позиции ловушек (1-based)
             var isFlame = flameSegments.includes(sectorId);
             var coeff = $arr[$i];
-            console.log('Sector', sectorId, 'isFlame:', isFlame, 'coeff:', coeff);
+            console.log('Sector', sectorId, 'isFlame:', isFlame, 'coeff:', coeff, 'flameSegments:', flameSegments);
             this.wrap.append(`<div class="sector${ $i == $arr.length-1 ? ' finish' : ($i ? ' far' : '') }" data-id="${ $i+1 }"${ isFlame ? ' flame="1"' : '' } style="position: relative;">
                 <div class="coincontainer" style="position: absolute; bottom: 30%; left: 0; width: 100%;">
                     ${$i == $arr.length-1 ? `
@@ -838,16 +1181,43 @@ class Game{
         console.log('GAME.start() called');
         // Refresh balance from DOM before starting (only if not in demo mode)
         if (!window.IS_DEMO_MODE && (!window.GAME_CONFIG || !window.GAME_CONFIG.is_demo_mode)) {
-            this.refreshBalance();
+        this.refreshBalance();
         } else {
             console.log('Demo mode active, skipping balance refresh in start()');
         }
         this.current_bet = +$('#bet_size').val();
+        
+        // Проверяем и исправляем баланс в демо режиме
+        if (window.IS_DEMO_MODE && (!this.balance || this.balance === undefined)) {
+            console.log('Balance is undefined in demo mode, fixing...');
+            var country = window.GAME_CONFIG ? window.GAME_CONFIG.user_country : 'default';
+            var demoConfigs = {
+                'Colombia': { balance: 2500000 },
+                'Paraguay': { balance: 5000000 },
+                'Ecuador': { balance: 500 },
+                'default': { balance: 500 }
+            };
+            var config = demoConfigs[country] || demoConfigs['default'];
+            this.balance = config.balance;
+            this.updateBalanceDisplay();
+        }
+        
         console.log('Current bet:', this.current_bet, 'Balance:', this.balance);
         if( this.current_bet && this.current_bet <= this.balance && this.current_bet > 0 ){ 
             console.log('Starting game...');
+        // Проверяем, есть ли уже полученные WebSocket данные
+        if (this.websocketCoefficients && Object.keys(this.websocketCoefficients).length > 0 && this.traps && this.traps.length > 0) {
+            console.log('Using existing WebSocket data for new game');
+            console.log('WebSocket coefficients:', this.websocketCoefficients);
+            console.log('WebSocket traps:', this.traps);
+        } else if (this.pendingWebSocketData) {
+            console.log('Using pending WebSocket data for new game');
+            this.updateTrapsFromWebSocket(this.pendingWebSocketData);
+            this.pendingWebSocketData = null;
+        } else {
             // Генерируем локальные трапы перед началом игры
             this.generateLocalTraps();
+        }
             
             // Устанавливаем pendingGameStart для actuallyStartGame
             this.pendingGameStart = {
@@ -878,8 +1248,10 @@ class Game{
         this.balance -= this.current_bet;
         
         // Уведомляем WebSocket о начале игры
-        if (window.trapWSClient && window.trapWSClient.isWebSocketConnected()) {
-            window.trapWSClient.startGame();
+        if (this.isWebSocketConnected) {
+            this.sendWebSocketMessage({
+                type: 'game_start'
+            });
         }
         this.updateBalanceDisplay(); 
         // Баланс теперь обновляется через API напрямую, не нужно вызывать updateBalanceOnServer
@@ -999,6 +1371,9 @@ class Game{
         // Сбрасываем флаг сразу после обработки результата игры
         this.game_result_saved = false;
         
+        // Очищаем только pending WebSocket данные, но сохраняем текущие
+        this.pendingWebSocketData = null;
+        
         setTimeout(
             function(){ 
                 $('#overlay').hide(); 
@@ -1009,8 +1384,10 @@ class Game{
                 // Флаг уже сброшен выше
                 
                 // Уведомляем WebSocket об окончании игры
-                if (window.trapWSClient && window.trapWSClient.isWebSocketConnected()) {
-                    window.trapWSClient.endGame();
+                if (GAME.isWebSocketConnected) {
+                    GAME.sendWebSocketMessage({
+                        type: 'game_end'
+                    });
                 }
                 
                 // Получаем актуальную информацию о пользователе после завершения игры
@@ -1079,6 +1456,13 @@ class Game{
             } else if (this.traps && this.traps.traps && Array.isArray(this.traps.traps)) {
                 trapsArray = this.traps.traps;
             }
+            
+            // Если ловушки пустые, используем fallback ловушки
+            if (trapsArray.length === 0 && this.localTraps && this.localTraps.length > 0) {
+                trapsArray = this.localTraps;
+                console.log('Using local traps as fallback:', trapsArray);
+            }
+            
             var isFlame = trapsArray.includes(currentSectorId);
             console.log('Step:', this.stp, 'Sector ID:', currentSectorId, 'Traps:', this.traps, 'TrapsArray:', trapsArray, 'Is flame:', isFlame);
             
@@ -1257,6 +1641,134 @@ class Game{
                 }
                 // Сохраняем настройки
                 $('body').attr('data-sound', SETTINGS.volume.active ? '1' : '0');
+            });
+            
+            // Универсальные обработчики для кнопок уровней сложности
+            // Пробуем разные селекторы для кнопок уровней
+            var levelSelectors = [
+                '.level-btn',
+                '[data-level]',
+                '.difficulty-btn',
+                '.level-button',
+                'button[data-level]',
+                '.btn[data-level]'
+            ];
+            
+            levelSelectors.forEach(function(selector) {
+                $(selector).off().on('click', function(){
+                    var level = $(this).data('level') || $(this).attr('data-level');
+                    if (!level) return; // Пропускаем если нет уровня
+                    
+                    console.log('=== LEVEL BUTTON CLICKED ===');
+                    console.log('Selector:', selector);
+                    console.log('Level button clicked:', level);
+                    console.log('GAME object exists:', !!GAME);
+                    console.log('GAME.setLevel exists:', !!(GAME && GAME.setLevel));
+                    
+                    // Обновляем визуальное состояние кнопок
+                    $(selector).removeClass('selected').css({
+                        'background': '#333',
+                        'color': '#fff',
+                        'border-color': '#666'
+                    });
+                    $(this).addClass('selected').css({
+                        'background': '#00ff88',
+                        'color': '#000',
+                        'border-color': '#00ff88'
+                    });
+                    console.log('Visual state updated for level:', level);
+                    
+                    // Вызываем setLevel для обновления коэффициентов
+                    if (GAME && GAME.setLevel) {
+                        console.log('Calling GAME.setLevel with level:', level);
+                        GAME.setLevel(level);
+                    } else {
+                        console.log('ERROR: GAME or GAME.setLevel not available!');
+                    }
+                    console.log('=== LEVEL BUTTON CLICK COMPLETED ===');
+                });
+            });
+            
+            // Также добавляем обработчик через делегирование событий
+            $(document).off('click.level').on('click.level', '[data-level]', function(){
+                var level = $(this).data('level');
+                console.log('=== DELEGATED LEVEL BUTTON CLICKED ===');
+                console.log('Level:', level);
+                console.log('Element:', this);
+                
+                if (GAME && GAME.setLevel) {
+                    console.log('Calling GAME.setLevel via delegation with level:', level);
+                    GAME.setLevel(level);
+                }
+            });
+            
+            // Добавляем универсальный обработчик для всех возможных кнопок уровней
+            $(document).off('click.levelUniversal').on('click.levelUniversal', function(e){
+                var $target = $(e.target);
+                var level = null;
+                
+                // Проверяем разные способы определения уровня
+                if ($target.hasClass('level-btn') || $target.hasClass('difficulty-btn')) {
+                    level = $target.data('level') || $target.attr('data-level');
+                } else if ($target.text().toLowerCase() === 'easy') {
+                    level = 'easy';
+                } else if ($target.text().toLowerCase() === 'medium') {
+                    level = 'medium';
+                } else if ($target.text().toLowerCase() === 'hard') {
+                    level = 'hard';
+                } else if ($target.text().toLowerCase() === 'hardcore') {
+                    level = 'hardcore';
+                }
+                
+                if (level && GAME && GAME.setLevel) {
+                    console.log('=== UNIVERSAL LEVEL BUTTON CLICKED ===');
+                    console.log('Level detected:', level);
+                    console.log('Element:', e.target);
+                    console.log('Element text:', $target.text());
+                    console.log('Element classes:', $target.attr('class'));
+                    
+                    // Обновляем визуальное состояние кнопок
+                    $('.level-btn, .difficulty-btn, [data-level]').removeClass('selected active').css({
+                        'background': '#333',
+                        'color': '#fff',
+                        'border-color': '#666'
+                    });
+                    $target.addClass('selected active').css({
+                        'background': '#00ff88',
+                        'color': '#000',
+                        'border-color': '#00ff88'
+                    });
+                    
+                    console.log('Calling GAME.setLevel with level:', level);
+                    GAME.setLevel(level);
+                }
+            });
+            
+            // Специальный обработчик для radio кнопок уровней
+            $('input[name="difficulity"]').off().on('change', function(){
+                var level = $(this).val();
+                console.log('=== RADIO LEVEL BUTTON CHANGED ===');
+                console.log('Level:', level);
+                console.log('Element:', this);
+                
+                // Снимаем активные классы со всех radio кнопок
+                $('input[name="difficulity"]').each(function(){
+                    var $label = $(this).closest('label');
+                    $label.removeClass('active selected');
+                    console.log('Removed active classes from:', $label.find('span').text());
+                });
+                
+                // Добавляем активный класс к выбранной кнопке
+                var $selectedLabel = $(this).closest('label');
+                $selectedLabel.addClass('active selected');
+                console.log('Added active classes to:', $selectedLabel.find('span').text());
+                
+                console.log('Active classes updated for level:', level);
+                
+                if (GAME && GAME.setLevel) {
+                    console.log('Calling GAME.setLevel with level:', level);
+                    GAME.setLevel(level);
+                }
             });
             
             // установка ставки в инпуте
@@ -1646,8 +2158,8 @@ function open_game(){
     // Refresh balance from DOM when game opens (only if not in demo mode)
     if (GAME && typeof GAME.refreshBalance === 'function') {
         if (!window.IS_DEMO_MODE && (!window.GAME_CONFIG || !window.GAME_CONFIG.is_demo_mode)) {
-            GAME.refreshBalance();
-            console.log('Balance refreshed in open_game():', GAME.balance);
+        GAME.refreshBalance();
+        console.log('Balance refreshed in open_game():', GAME.balance);
         } else {
             console.log('Demo mode active, skipping balance refresh in open_game()');
         }
@@ -1701,54 +2213,122 @@ function saveGameResult(result, bet, award, balance) {
 
 // WebSocket методы для генерации ловушек
 Game.prototype.updateTrapsFromWebSocket = function(websocketData) {
-    console.log('Updating traps from WebSocket:', websocketData);
+    console.log('=== UPDATING TRAPS FROM WEBSOCKET ===');
+    console.log('WebSocket data:', websocketData);
+    console.log('Current game status:', this.cur_status);
     
     if (websocketData && websocketData.traps) {
         // Обновляем ловушки из WebSocket
+        if (websocketData.traps && websocketData.traps.length > 0) {
         this.localTraps = websocketData.traps;
         this.traps = websocketData.traps;
-        
         console.log('Traps updated from WebSocket:', this.traps);
+        } else {
+            console.log('WebSocket traps are empty, keeping existing traps:', this.traps);
+        }
         
         // Обновляем коэффициенты из WebSocket (не используем локальные)
         if (websocketData.sectors) {
             console.log('Using coefficients from WebSocket, not local SETTINGS');
             this.updateSectorCoefficients(websocketData.sectors);
+            
+            // Принудительно обновляем коэффициенты для текущего уровня из SETTINGS
+            console.log('Forcing coefficient update for current level:', this.cur_lvl);
+            var levelCoeffs = SETTINGS.cfs[this.cur_lvl] || SETTINGS.cfs.easy;
+            console.log('Level coefficients from SETTINGS for', this.cur_lvl, ':', levelCoeffs);
+            
+            // Перезаписываем WebSocket коэффициенты правильными для текущего уровня
+            this.websocketCoefficients = {};
+            levelCoeffs.forEach((coeff, index) => {
+                this.websocketCoefficients[index] = coeff;
+            });
+            console.log('Updated coefficients for level', this.cur_lvl, ':', this.websocketCoefficients);
         }
         
-        // Обновляем отображение ловушек на поле
-        this.updateTraps();
+        // Пересоздаем доску если игра не активна или если это новые данные для другого уровня
+        var shouldRecreateBoard = false;
+        
+        if (this.cur_status === 'loading' || this.cur_status === 'ready') {
+            shouldRecreateBoard = true;
+            console.log('Game not active, recreating board with WebSocket data...');
+        } else if (this.cur_status === 'game') {
+            console.log('Game is active, but forcing board update with new WebSocket data');
+            // Принудительно обновляем доску даже во время активной игры
+            shouldRecreateBoard = true;
+        } else {
+        // Проверяем, изменился ли уровень
+        var newLevel = websocketData.level || 'easy';
+        if (newLevel !== this.cur_lvl) {
+            console.log('Level changed from', this.cur_lvl, 'to', newLevel, '- recreating board');
+            this.cur_lvl = newLevel;
+            shouldRecreateBoard = true;
+            
+            // Принудительно обновляем коэффициенты для нового уровня
+            console.log('Forcing coefficient update for new level:', newLevel);
+            var levelCoeffs = SETTINGS.cfs[newLevel] || SETTINGS.cfs.easy;
+            this.websocketCoefficients = {};
+            levelCoeffs.forEach((coeff, index) => {
+                this.websocketCoefficients[index] = coeff;
+            });
+            console.log('Updated coefficients for level', newLevel, ':', this.websocketCoefficients);
+        } else {
+            console.log('WebSocket data updated, but keeping existing board');
+        }
+        }
+        
+        if (shouldRecreateBoard) {
+            this.createBoard();
+        }
+    } else {
+        console.log('No valid WebSocket data received');
     }
 };
 
 Game.prototype.updateSectorCoefficients = function(sectors) {
-    console.log('Updating sector coefficients from WebSocket (replacing local coefficients):', sectors);
+    console.log('=== UPDATING SECTOR COEFFICIENTS FROM WEBSOCKET ===');
+    console.log('Sectors data:', sectors);
+    console.log('Current game status:', this.cur_status);
     
     // Создаем массив коэффициентов из WebSocket данных
     this.websocketCoefficients = {};
     
-    // Обрабатываем секторы из WebSocket данных
-    if (sectors && sectors.length > 0) {
-        sectors.forEach(sector => {
+        // Обрабатываем секторы из WebSocket данных
+        if (sectors && sectors.length > 0) {
+    sectors.forEach(sector => {
             // Сохраняем коэффициент из WebSocket
+                // sector.position это индекс массива (0-based), используем его как есть
             this.websocketCoefficients[sector.position] = sector.coefficient;
+                console.log(`Sector ${sector.position + 1}: coefficient ${sector.coefficient}, isTrap: ${sector.isTrap}`);
+            });
+            
+        // Всегда используем WebSocket коэффициенты, так как сервер отправляет правильные для каждого уровня
+        console.log('Using WebSocket coefficients for level', this.cur_lvl);
+        console.log('WebSocket coefficients received:', Object.values(this.websocketCoefficients));
+            
+        console.log('Final coefficients saved:', this.websocketCoefficients);
+        console.log('Coefficients array:', Object.values(this.websocketCoefficients));
+            } else {
+        console.log('No sectors data received from WebSocket - using local coefficients');
+        // Используем локальные коэффициенты если WebSocket данные пустые
+        var levelCoeffs = SETTINGS.cfs[this.cur_lvl] || SETTINGS.cfs.easy;
+        this.websocketCoefficients = {};
+        levelCoeffs.forEach((coeff, index) => {
+            this.websocketCoefficients[index] = coeff;
         });
-        
-        // Пересоздаем игровое поле с новыми коэффициентами
-        console.log('Recreating game board with WebSocket coefficients');
-        this.createBoard();
+        console.log('Local coefficients applied for level', this.cur_lvl, ':', this.websocketCoefficients);
     }
     
-    console.log('WebSocket coefficients saved:', this.websocketCoefficients);
+    // Не пересоздаем доску здесь - это делается в updateTrapsFromWebSocket
 };
 
 Game.prototype.requestTrapsFromWebSocket = function(level = null) {
-    if (window.trapWSClient && window.trapWSClient.isWebSocketConnected()) {
+    if (this.isWebSocketConnected) {
         const requestLevel = level || this.cur_lvl || 'easy';
         console.log('Requesting traps from WebSocket for level:', requestLevel);
         
         // Устанавливаем уровень и запрашиваем ловушки
-        window.trapWSClient.setLevel(requestLevel);
+        this.setWebSocketLevel(requestLevel);
+        this.requestWebSocketTraps();
     } else {
         console.log('WebSocket not connected, waiting for connection...');
         this.waitForWebSocketConnection();
@@ -1756,17 +2336,12 @@ Game.prototype.requestTrapsFromWebSocket = function(level = null) {
 };
 
 Game.prototype.toggleWebSocketMode = function() {
-    if (window.trapWSClient) {
-        if (window.trapWSClient.isWebSocketConnected()) {
+    if (this.isWebSocketConnected) {
             console.log('WebSocket mode enabled');
             return true;
     } else {
             console.log('WebSocket not connected, attempting to connect...');
-            window.trapWSClient.connect();
-            return false;
-        }
-    } else {
-        console.log('WebSocket client not available');
+        this.connectWebSocket();
         return false;
     }
 };

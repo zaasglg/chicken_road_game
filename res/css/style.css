@@ -106,6 +106,8 @@ footer#footer{ flex-grow:0; flex-shrink:0; background:var(--footer-bg); display:
 #dificulity .radio_buttons label:hover span{ background: rgb(95, 97, 113); color: rgb(255, 255, 255); }
 #dificulity .radio_buttons input{ display:none; }
 #dificulity .radio_buttons input:checked ~ span{ background: rgb(95, 97, 113); color: rgb(255, 255, 255); } 
+#dificulity .radio_buttons label.active span, #dificulity .radio_buttons label.selected span{ background: rgb(95, 97, 113); color: rgb(255, 255, 255); }
+#dificulity .radio_buttons label span{ background: transparent; color: rgb(142, 143, 154); } 
 #buttons_wrapper{ display:flex; flex-flow:row nowrap; justify-content:stretch; align-items:stretch; gap:20px; flex-grow:1; flex-shrink:1; }
 
 

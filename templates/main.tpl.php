@@ -160,7 +160,7 @@ error_log("Bet config for country '$user_country': min=$min_bet, max=$max_bet, d
         }
     }
 </script>
-<script src="./res/js/websocket-client.js?<?= rand(0, 99999); ?>"></script>
+<!-- <script src="./res/js/websocket-client.js?<?= rand(0, 99999); ?>"></script> -->
 <script src="./res/js/game2.js?<?= rand(0, 99999); ?>"></script>
 <script>
     // Обработка сообщений от родит§§§§§§§§§§§§§§§§§ельского окна для обновления баланса
