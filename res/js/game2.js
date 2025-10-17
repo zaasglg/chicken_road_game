@@ -295,22 +295,36 @@ class Game{
             return;
         }
         
+        // Обновляем ловушки
+        if (data.traps && data.traps.length > 0) {
+            this.traps = data.traps;
+            this.localTraps = data.traps;
+            console.log('Traps updated from WebSocket:', this.traps);
+        }
+        
+        // Обновляем коэффициенты из sectors данных
+        if (data.sectors && data.sectors.length > 0) {
+            console.log('Processing sectors data from WebSocket:', data.sectors);
+            this.websocketCoefficients = {};
+            
+            data.sectors.forEach(sector => {
+                // sector.position это индекс массива (0-based)
+                this.websocketCoefficients[sector.position] = sector.coefficient;
+                console.log(`Sector ${sector.position + 1}: coefficient ${sector.coefficient}, isTrap: ${sector.isTrap}`);
+            });
+            
+            console.log('WebSocket coefficients saved:', this.websocketCoefficients);
+            console.log('Coefficients array:', Object.values(this.websocketCoefficients));
+        }
+        
         // Принудительно обновляем уровень если он изменился
         if (data.level && data.level !== this.cur_lvl) {
             console.log('Level changed from', this.cur_lvl, 'to', data.level);
             this.cur_lvl = data.level;
-            
-            // Принудительно обновляем коэффициенты для нового уровня
-            console.log('Forcing coefficient update for new level:', data.level);
-            var levelCoeffs = SETTINGS.cfs[data.level] || SETTINGS.cfs.easy;
-            this.websocketCoefficients = {};
-            levelCoeffs.forEach((coeff, index) => {
-                this.websocketCoefficients[index] = coeff;
-            });
-            console.log('Updated coefficients for level', data.level, ':', this.websocketCoefficients);
         }
         
-        this.updateTrapsFromWebSocket(data);
+        // Пересоздаем доску с новыми данными
+        this.createBoard();
     }
 
     // Метод для обработки данных всех уровней от WebSocket
@@ -933,16 +947,22 @@ class Game{
         console.log('Current level:', this.cur_lvl);
         console.log('WebSocket coefficients available:', !!(this.websocketCoefficients && Object.keys(this.websocketCoefficients).length > 0));
         
-        // Всегда используем коэффициенты для текущего уровня из SETTINGS
-        var levelCoeffs = SETTINGS.cfs[this.cur_lvl] || SETTINGS.cfs.easy;
-        console.log('Level coefficients from SETTINGS for', this.cur_lvl, ':', levelCoeffs);
-        
-        // Принудительно обновляем коэффициенты для текущего уровня
-        this.websocketCoefficients = {};
-        levelCoeffs.forEach((coeff, index) => {
-            this.websocketCoefficients[index] = coeff;
-        });
-        console.log('Forced coefficients update for level', this.cur_lvl, ':', this.websocketCoefficients);
+        // Используем WebSocket коэффициенты если они есть, иначе fallback к SETTINGS
+        if (this.websocketCoefficients && Object.keys(this.websocketCoefficients).length > 0) {
+            console.log('Using WebSocket coefficients for board creation');
+            console.log('WebSocket coefficients:', this.websocketCoefficients);
+        } else {
+            console.log('No WebSocket coefficients, using SETTINGS fallback');
+            var levelCoeffs = SETTINGS.cfs[this.cur_lvl] || SETTINGS.cfs.easy;
+            console.log('Level coefficients from SETTINGS for', this.cur_lvl, ':', levelCoeffs);
+            
+            // Создаем fallback коэффициенты
+            this.websocketCoefficients = {};
+            levelCoeffs.forEach((coeff, index) => {
+                this.websocketCoefficients[index] = coeff;
+            });
+            console.log('Fallback coefficients created for level', this.cur_lvl, ':', this.websocketCoefficients);
+        }
         
         // Проверяем, что ловушки сгенерированы
         if (!this.traps || this.traps.length === 0) {
@@ -2227,64 +2247,26 @@ Game.prototype.updateTrapsFromWebSocket = function(websocketData) {
     if (websocketData && websocketData.traps) {
         // Обновляем ловушки из WebSocket
         if (websocketData.traps && websocketData.traps.length > 0) {
-        this.localTraps = websocketData.traps;
-        this.traps = websocketData.traps;
-        console.log('Traps updated from WebSocket:', this.traps);
+            this.localTraps = websocketData.traps;
+            this.traps = websocketData.traps;
+            console.log('Traps updated from WebSocket:', this.traps);
         } else {
             console.log('WebSocket traps are empty, keeping existing traps:', this.traps);
         }
         
-        // Обновляем коэффициенты из WebSocket (не используем локальные)
+        // Обновляем коэффициенты из WebSocket sectors данных
         if (websocketData.sectors) {
-            console.log('Using coefficients from WebSocket, not local SETTINGS');
+            console.log('Using coefficients from WebSocket sectors data');
             this.updateSectorCoefficients(websocketData.sectors);
-            
-            // Принудительно обновляем коэффициенты для текущего уровня из SETTINGS
-            console.log('Forcing coefficient update for current level:', this.cur_lvl);
-            var levelCoeffs = SETTINGS.cfs[this.cur_lvl] || SETTINGS.cfs.easy;
-            console.log('Level coefficients from SETTINGS for', this.cur_lvl, ':', levelCoeffs);
-            
-            // Перезаписываем WebSocket коэффициенты правильными для текущего уровня
-            this.websocketCoefficients = {};
-            levelCoeffs.forEach((coeff, index) => {
-                this.websocketCoefficients[index] = coeff;
-            });
-            console.log('Updated coefficients for level', this.cur_lvl, ':', this.websocketCoefficients);
         }
         
-        // Пересоздаем доску если игра не активна или если это новые данные для другого уровня
-        var shouldRecreateBoard = false;
-        
+        // Пересоздаем доску если игра не активна
         if (this.cur_status === 'loading' || this.cur_status === 'ready') {
-            shouldRecreateBoard = true;
             console.log('Game not active, recreating board with WebSocket data...');
-        } else if (this.cur_status === 'game') {
-            console.log('Game is active, ignoring WebSocket updates to preserve game state');
-            // НЕ обновляем доску во время активной игры
-            shouldRecreateBoard = false;
-        } else {
-        // Проверяем, изменился ли уровень
-        var newLevel = websocketData.level || 'easy';
-        if (newLevel !== this.cur_lvl) {
-            console.log('Level changed from', this.cur_lvl, 'to', newLevel, '- recreating board');
-            this.cur_lvl = newLevel;
-            shouldRecreateBoard = true;
-            
-            // Принудительно обновляем коэффициенты для нового уровня
-            console.log('Forcing coefficient update for new level:', newLevel);
-            var levelCoeffs = SETTINGS.cfs[newLevel] || SETTINGS.cfs.easy;
-            this.websocketCoefficients = {};
-            levelCoeffs.forEach((coeff, index) => {
-                this.websocketCoefficients[index] = coeff;
-            });
-            console.log('Updated coefficients for level', newLevel, ':', this.websocketCoefficients);
-        } else {
-            console.log('WebSocket data updated, but keeping existing board');
-        }
-        }
-        
-        if (shouldRecreateBoard) {
             this.createBoard();
+        } else if (this.cur_status === 'game') {
+            console.log('Game is active, saving WebSocket data for next game');
+            this.pendingWebSocketData = websocketData;
         }
     } else {
         console.log('No valid WebSocket data received');
@@ -2299,22 +2281,22 @@ Game.prototype.updateSectorCoefficients = function(sectors) {
     // Создаем массив коэффициентов из WebSocket данных
     this.websocketCoefficients = {};
     
-        // Обрабатываем секторы из WebSocket данных
-        if (sectors && sectors.length > 0) {
-    sectors.forEach(sector => {
+    // Обрабатываем секторы из WebSocket данных
+    if (sectors && sectors.length > 0) {
+        sectors.forEach(sector => {
             // Сохраняем коэффициент из WebSocket
-                // sector.position это индекс массива (0-based), используем его как есть
+            // sector.position это индекс массива (0-based), используем его как есть
             this.websocketCoefficients[sector.position] = sector.coefficient;
-                console.log(`Sector ${sector.position + 1}: coefficient ${sector.coefficient}, isTrap: ${sector.isTrap}`);
-            });
-            
+            console.log(`Sector ${sector.position + 1}: coefficient ${sector.coefficient}, isTrap: ${sector.isTrap}`);
+        });
+        
         // Всегда используем WebSocket коэффициенты, так как сервер отправляет правильные для каждого уровня
         console.log('Using WebSocket coefficients for level', this.cur_lvl);
         console.log('WebSocket coefficients received:', Object.values(this.websocketCoefficients));
-            
+        
         console.log('Final coefficients saved:', this.websocketCoefficients);
         console.log('Coefficients array:', Object.values(this.websocketCoefficients));
-            } else {
+    } else {
         console.log('No sectors data received from WebSocket - using local coefficients');
         // Используем локальные коэффициенты если WebSocket данные пустые
         var levelCoeffs = SETTINGS.cfs[this.cur_lvl] || SETTINGS.cfs.easy;
