@@ -43,15 +43,26 @@ wss.on('connection', (ws) => {
             } else if (data.type === 'set_client_type') {
                 clientData.isHackBot = data.isHackBot || false;
             } else if (data.type === 'request_traps') {
-                const trapData = generateTraps(clientData.level, 0);
+                // Отдаем ПОСЛЕДНИЕ сгенерированные ловушки, а не создаем новые
+                const level = clientData.level;
+                let trapData = lastTrapsByLevel[level];
+                
+                // Если еще не было broadcast, генерируем первый раз
+                if (!trapData) {
+                    const broadcastSeed = Date.now();
+                    trapData = generateTraps(level, 0, broadcastSeed);
+                    lastTrapsByLevel[level] = trapData;
+                    console.log(`First generation for level ${level}:`, trapData.trapIndex);
+                }
+                
                 clientData.lastTraps = trapData.traps;
                 ws.send(JSON.stringify({ 
                     type: 'traps', 
                     traps: trapData.traps, 
-                    level: clientData.level,
+                    level: trapData.level || level,
                     coefficient: trapData.coefficient,
                     trapIndex: trapData.trapIndex,
-                    sectors: trapData.sectors, // Добавляем массив коэффициентов для всех секторов
+                    sectors: trapData.sectors,
                     seconds: getSecondsToNextBroadcast()
                 }));
             } else if (data.type === 'get_last_traps') {
@@ -156,6 +167,7 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null) {
     console.log(`Client ${clientIndex}: Level: ${level}, Trap index: ${flameIndex}, Coefficient: ${coefficient}x`);
 
     return { 
+        level: level,
         traps: flameIndex > 0 ? [flameIndex] : [], 
         coefficient, 
         trapIndex: flameIndex,

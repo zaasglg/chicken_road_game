@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Trap Stability Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+        }
+        h1 {
+            text-align: center;
+            color: #4ecca3;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .panel {
+            background: rgba(52, 58, 64, 0.8);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 18px;
+        }
+        .connected {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            animation: pulse 2s infinite;
+        }
+        .disconnected {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+        .playing {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        button.danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+        button.success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        .trap-history {
+            max-height: 500px;
+            overflow-y: auto;
+            background: #0d1117;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .trap-entry {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        .trap-entry.same {
+            border-left-color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+        .trap-entry.different {
+            border-left-color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-box {
+            background: rgba(78, 204, 163, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4ecca3;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4ecca3;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background: rgba(40, 167, 69, 0.2);
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 WebSocket Trap Stability Test</h1>
+    <p style="text-align: center; color: #aaa;">
+        Проверяем, что коэффициенты НЕ меняются во время игры
+    </p>
+    
+    <div class="panel">
+        <div id="status" class="status disconnected">❌ Disconnected</div>
+        <div id="gameStatus" class="status disconnected">⏹️ Not Playing</div>
+        
+        <div class="controls">
+            <button onclick="connect()">🔌 Connect</button>
+            <button class="success" onclick="startGame()">▶️ Start Game</button>
+            <button class="danger" onclick="endGame()">⏹️ End Game</button>
+            <button onclick="requestTraps()">📥 Request Traps</button>
+            <button onclick="clearHistory()">🗑️ Clear</button>
+        </div>
+    </div>
+    
+    <div class="panel">
+        <h2>📊 Statistics</h2>
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">Total Requests</div>
+                <div class="stat-value" id="totalRequests">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Changes Detected</div>
+                <div class="stat-value" id="changesDetected">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Current Trap Index</div>
+                <div class="stat-value" id="currentTrap">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Current Coefficient</div>
+                <div class="stat-value" id="currentCoeff">-</div>
+            </div>
+        </div>
+        
+        <div id="testResult"></div>
+    </div>
+    
+    <div class="panel">
+        <h2>📜 Trap History</h2>
+        <div class="trap-history" id="history"></div>
+    </div>
+    
+    <script>
+        let ws = null;
+        let isConnected = false;
+        let isPlaying = false;
+        let totalRequests = 0;
+        let changesDetected = 0;
+        let lastTrapData = null;
+        let requestCount = 0;
+        
+        function log(message, type = 'same') {
+            const historyDiv = document.getElementById('history');
+            const entry = document.createElement('div');
+            entry.className = `trap-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            historyDiv.appendChild(entry);
+            historyDiv.scrollTop = historyDiv.scrollHeight;
+        }
+        
+        function updateStats() {
+            document.getElementById('totalRequests').textContent = totalRequests;
+            document.getElementById('changesDetected').textContent = changesDetected;
+            if (lastTrapData) {
+                document.getElementById('currentTrap').textContent = lastTrapData.trapIndex || '-';
+                document.getElementById('currentCoeff').textContent = lastTrapData.coefficient ? lastTrapData.coefficient.toFixed(2) + 'x' : '-';
+            }
+            
+            // Обновляем результат теста
+            const resultDiv = document.getElementById('testResult');
+            if (totalRequests > 5) {
+                if (changesDetected === 0) {
+                    resultDiv.innerHTML = '<div class="success"><strong>✅ ТЕСТ ПРОЙДЕН!</strong><br>Коэффициенты стабильны, изменений не обнаружено!</div>';
+                } else {
+                    resultDiv.innerHTML = `<div class="warning"><strong>⚠️ ВНИМАНИЕ!</strong><br>Обнаружено ${changesDetected} изменений коэффициентов!</div>`;
+                }
+            }
+        }
+        
+        function updateStatus(connected) {
+            isConnected = connected;
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = connected ? '✅ Connected' : '❌ Disconnected';
+            statusDiv.className = connected ? 'status connected' : 'status disconnected';
+        }
+        
+        function updateGameStatus(playing) {
+            isPlaying = playing;
+            const statusDiv = document.getElementById('gameStatus');
+            statusDiv.textContent = playing ? '🎮 Playing...' : '⏹️ Not Playing';
+            statusDiv.className = playing ? 'status playing' : 'status disconnected';
+        }
+        
+        function connect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('⚠️ Already connected!');
+                return;
+            }
+            
+            const wsUrl = 'ws://localhost:8081/ws/';
+            log(`🔌 Connecting to: ${wsUrl}`);
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                log('✅ Connected to WebSocket server', 'same');
+                updateStatus(true);
+                
+                // Устанавливаем уровень Easy
+                ws.send(JSON.stringify({ type: 'set_level', level: 'easy' }));
+                
+                // Запрашиваем начальные ловушки
+                setTimeout(() => requestTraps(), 500);
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'traps') {
+                    totalRequests++;
+                    
+                    const trapInfo = `Trap: ${data.trapIndex}, Coeff: ${data.coefficient}x`;
+                    
+                    // Проверяем, изменились ли данные
+                    if (lastTrapData) {
+                        if (lastTrapData.trapIndex !== data.trapIndex || 
+                            Math.abs(lastTrapData.coefficient - data.coefficient) > 0.01) {
+                            changesDetected++;
+                            log(`🔄 ИЗМЕНЕНИЕ! Было: Trap ${lastTrapData.trapIndex} (${lastTrapData.coefficient}x), Стало: Trap ${data.trapIndex} (${data.coefficient}x)`, 'different');
+                            
+                            if (isPlaying) {
+                                log('❌ ОШИБКА: Коэффициенты изменились ВО ВРЕМЯ ИГРЫ!', 'different');
+                            }
+                        } else {
+                            log(`✅ Стабильно: ${trapInfo}`, 'same');
+                        }
+                    } else {
+                        log(`📥 Первые данные: ${trapInfo}`, 'same');
+                    }
+                    
+                    lastTrapData = data;
+                    updateStats();
+                }
+            };
+            
+            ws.onclose = () => {
+                log('📱 Disconnected', 'different');
+                updateStatus(false);
+            };
+            
+            ws.onerror = (error) => {
+                log('❌ WebSocket error', 'different');
+                updateStatus(false);
+            };
+        }
+        
+        function startGame() {
+            if (!isConnected) {
+                log('❌ Not connected!', 'different');
+                return;
+            }
+            
+            log('▶️ GAME STARTED - теперь коэффициенты НЕ должны меняться!', 'same');
+            ws.send(JSON.stringify({ type: 'game_start' }));
+            updateGameStatus(true);
+            
+            // Запрашиваем ловушки несколько раз во время игры
+            let gameRequestCount = 0;
+            const gameInterval = setInterval(() => {
+                if (!isPlaying) {
+                    clearInterval(gameInterval);
+                    return;
+                }
+                
+                gameRequestCount++;
+                log(`🎮 Запрос во время игры #${gameRequestCount}`, 'same');
+                requestTraps();
+                
+                if (gameRequestCount >= 5) {
+                    clearInterval(gameInterval);
+                }
+            }, 2000);
+        }
+        
+        function endGame() {
+            if (!isConnected) {
+                log('❌ Not connected!', 'different');
+                return;
+            }
+            
+            log('⏹️ GAME ENDED', 'same');
+            ws.send(JSON.stringify({ type: 'game_end' }));
+            updateGameStatus(false);
+        }
+        
+        function requestTraps() {
+            if (!isConnected) {
+                log('❌ Not connected!', 'different');
+                return;
+            }
+            
+            ws.send(JSON.stringify({ type: 'request_traps' }));
+            log('📤 Request sent');
+        }
+        
+        function clearHistory() {
+            document.getElementById('history').innerHTML = '';
+            totalRequests = 0;
+            changesDetected = 0;
+            lastTrapData = null;
+            updateStats();
+            document.getElementById('testResult').innerHTML = '';
+        }
+        
+        // Auto-connect on load
+        window.addEventListener('load', () => {
+            setTimeout(connect, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trap Position Debug</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+        }
+        h1 {
+            text-align: center;
+            color: #ff6b6b;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .explanation {
+            background: rgba(52, 58, 64, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #ff6b6b;
+        }
+        .problem {
+            background: rgba(220, 53, 69, 0.2);
+            border-left-color: #dc3545;
+        }
+        .solution {
+            background: rgba(40, 167, 69, 0.2);
+            border-left-color: #28a745;
+        }
+        .code-block {
+            background: #0d1117;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        .highlight-error {
+            background: rgba(220, 53, 69, 0.3);
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        .highlight-fix {
+            background: rgba(40, 167, 69, 0.3);
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        .visual-demo {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        .demo-section {
+            flex: 1;
+            min-width: 300px;
+            margin: 10px;
+            background: rgba(52, 58, 64, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .sector-row {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            align-items: flex-end;
+        }
+        .sector {
+            flex: 1;
+            height: 80px;
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            transition: all 0.3s;
+        }
+        .sector.trap {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            animation: flicker 1s infinite;
+        }
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .sector.chicken {
+            border: 3px solid #ffc107;
+            box-shadow: 0 0 20px rgba(255, 193, 7, 0.5);
+        }
+        .sector.checked-wrong {
+            border: 3px dashed #ff6b6b;
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+        }
+        .sector-label {
+            font-size: 11px;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        .sector-coeff {
+            font-weight: bold;
+            font-size: 16px;
+            color: #4ecca3;
+        }
+        .chicken-icon {
+            position: absolute;
+            top: -25px;
+            font-size: 24px;
+        }
+        .fire-icon {
+            position: absolute;
+            top: -25px;
+            font-size: 24px;
+            animation: burn 0.5s infinite;
+        }
+        @keyframes burn {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid rgba(78, 204, 163, 0.3);
+        }
+        th {
+            background: rgba(78, 204, 163, 0.2);
+            color: #4ecca3;
+            font-weight: bold;
+        }
+        .error-row {
+            background: rgba(220, 53, 69, 0.2);
+        }
+        .success-row {
+            background: rgba(40, 167, 69, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <h1>🐔 Проблема с проверкой ловушек - Визуализация</h1>
+    
+    <div class="explanation problem">
+        <h2>❌ Проблема</h2>
+        <p><strong>Симптом:</strong> Курица сгорает раньше, чем должна. Например, ловушка на коэффициенте 1.12 (сектор 3), но курица сгорает на 1.07 (сектор 2).</p>
+        
+        <h3>Старый код (неправильный):</h3>
+        <div class="code-block">
+this.stp += 1;  // stp = 1 (курица идёт на сектор 1)<br>
+var <span class="highlight-error">currentSectorId = this.stp + 1;</span>  // currentSectorId = 2 ❌<br>
+var $sector = $('.sector').eq(this.stp);  // Сектор с индексом 1<br>
+var isFlameInArray = trapsArray.includes(currentSectorId);  // Проверяем сектор 2! ❌
+        </div>
+        
+        <h3>Что происходило:</h3>
+        <table>
+            <tr>
+                <th>Шаг</th>
+                <th>this.stp</th>
+                <th>currentSectorId (неправильно)</th>
+                <th>Сектор курицы</th>
+                <th>Проверяемый сектор</th>
+                <th>Результат</th>
+            </tr>
+            <tr class="error-row">
+                <td>1</td>
+                <td>1</td>
+                <td>2</td>
+                <td>Сектор 1 (1.07x)</td>
+                <td>Сектор 2 (1.12x) ← ловушка здесь</td>
+                <td>❌ Курица на секторе 1, но проверяется сектор 2 - СРАБАТЫВАЕТ ЛОВУШКА!</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>2</td>
+                <td>3</td>
+                <td>Сектор 2 (1.12x) ← ловушка здесь</td>
+                <td>Сектор 3 (1.17x)</td>
+                <td>Курица проходит мимо ловушки (если выжила)</td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="visual-demo">
+        <div class="demo-section">
+            <h3 style="color: #ff6b6b;">❌ Неправильно (старый код)</h3>
+            <p style="font-size: 12px; color: #aaa;">Курица на секторе 1, но проверяется сектор 2</p>
+            <div class="sector-row">
+                <div class="sector">
+                    <div class="sector-coeff">1.03x</div>
+                    <div class="sector-label">Start</div>
+                </div>
+                <div class="sector chicken">
+                    <span class="chicken-icon">🐔</span>
+                    <div class="sector-coeff">1.07x</div>
+                    <div class="sector-label">Сектор 1<br>stp = 1</div>
+                </div>
+                <div class="sector trap checked-wrong">
+                    <span class="fire-icon">🔥</span>
+                    <div class="sector-coeff">1.12x</div>
+                    <div class="sector-label">Сектор 2<br>проверяется!<br>ЛОВУШКА</div>
+                </div>
+                <div class="sector">
+                    <div class="sector-coeff">1.17x</div>
+                    <div class="sector-label">Сектор 3</div>
+                </div>
+            </div>
+            <p style="color: #ff6b6b; font-weight: bold;">Курица сгорает, хотя находится на безопасном секторе!</p>
+        </div>
+        
+        <div class="demo-section">
+            <h3 style="color: #28a745;">✅ Правильно (новый код)</h3>
+            <p style="font-size: 12px; color: #aaa;">Курица на секторе 1, проверяется сектор 1</p>
+            <div class="sector-row">
+                <div class="sector">
+                    <div class="sector-coeff">1.03x</div>
+                    <div class="sector-label">Start</div>
+                </div>
+                <div class="sector chicken">
+                    <span class="chicken-icon">🐔</span>
+                    <div class="sector-coeff">1.07x</div>
+                    <div class="sector-label">Сектор 1<br>stp = 1<br>проверяется!</div>
+                </div>
+                <div class="sector trap">
+                    <span class="fire-icon">🔥</span>
+                    <div class="sector-coeff">1.12x</div>
+                    <div class="sector-label">Сектор 2<br>ЛОВУШКА</div>
+                </div>
+                <div class="sector">
+                    <div class="sector-coeff">1.17x</div>
+                    <div class="sector-label">Сектор 3</div>
+                </div>
+            </div>
+            <p style="color: #28a745; font-weight: bold;">Курица безопасна, ловушка на следующем секторе!</p>
+        </div>
+    </div>
+    
+    <div class="explanation solution">
+        <h2>✅ Решение</h2>
+        <p>Использовать атрибут <code>data-id</code> из DOM элемента сектора вместо вычисления ID.</p>
+        
+        <h3>Новый код (правильный):</h3>
+        <div class="code-block">
+this.stp += 1;  // stp = 1 (курица идёт на сектор 1)<br>
+var $sector = $('.sector').eq(this.stp);  // Получаем DOM элемент сектора<br>
+var <span class="highlight-fix">sectorDataId = parseInt($sector.attr('data-id'));</span>  // Читаем ID из атрибута ✅<br>
+var isFlameInArray = trapsArray.includes(sectorDataId);  // Проверяем правильный сектор! ✅
+        </div>
+        
+        <h3>Что происходит теперь:</h3>
+        <table>
+            <tr>
+                <th>Шаг</th>
+                <th>this.stp</th>
+                <th>sectorDataId (правильно)</th>
+                <th>Сектор курицы</th>
+                <th>Проверяемый сектор</th>
+                <th>Результат</th>
+            </tr>
+            <tr class="success-row">
+                <td>1</td>
+                <td>1</td>
+                <td>1</td>
+                <td>Сектор 1 (1.07x)</td>
+                <td>Сектор 1 (1.07x)</td>
+                <td>✅ Курица и проверка на одном секторе - безопасно!</td>
+            </tr>
+            <tr class="error-row">
+                <td>2</td>
+                <td>2</td>
+                <td>2</td>
+                <td>Сектор 2 (1.12x) ← ловушка здесь</td>
+                <td>Сектор 2 (1.12x) ← проверяется</td>
+                <td>🔥 Курица правильно сгорает на ловушке!</td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="explanation">
+        <h2>📊 Ключевые концепции</h2>
+        
+        <h3>1. Индексация секторов:</h3>
+        <ul>
+            <li><strong>jQuery .eq():</strong> использует 0-based индексацию (0, 1, 2, 3...)</li>
+            <li><strong>data-id атрибут:</strong> использует 1-based ID (1, 2, 3, 4...)</li>
+            <li><strong>trapsArray:</strong> содержит 1-based ID секторов с ловушками</li>
+        </ul>
+        
+        <h3>2. Пример для Easy уровня:</h3>
+        <div class="code-block">
+Коэффициенты: [1.03, 1.07, 1.12, 1.17, 1.23, 1.29, 1.36, 1.44, 1.53, 1.63]<br>
+Индексы:       [0,    1,    2,    3,    4,    5,    6,    7,    8,    9   ]<br>
+data-id:       [1,    2,    3,    4,    5,    6,    7,    8,    9,    10  ]<br>
+<br>
+Если ловушка на 1.12x:<br>
+- Индекс в массиве: 2<br>
+- data-id сектора: 3<br>
+- trapsArray содержит: [3]
+        </div>
+        
+        <h3>3. Правильная логика проверки:</h3>
+        <ol>
+            <li>Увеличить <code>this.stp</code> (курица делает шаг)</li>
+            <li>Получить сектор через <code>$('.sector').eq(this.stp)</code></li>
+            <li>Прочитать <code>data-id</code> из атрибута сектора</li>
+            <li>Проверить, есть ли этот <code>data-id</code> в массиве ловушек</li>
+        </ol>
+    </div>
+    
+    <div class="explanation" style="background: rgba(78, 204, 163, 0.2); border-left-color: #4ecca3;">
+        <h2>✨ Исправление внесено</h2>
+        <p>Файл: <code>/res/js/game2.js</code></p>
+        <p>Строки: ~1740-1777</p>
+        <p><strong>Теперь курица правильно проверяет ловушки и сгорает только на том секторе, где действительно находится ловушка!</strong></p>
+    </div>
+</body>
+</html>

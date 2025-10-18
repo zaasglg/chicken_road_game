@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .connected {
+            background: #28a745;
+        }
+        .disconnected {
+            background: #dc3545;
+        }
+        .message {
+            background: #343a40;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #log {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #0d1117;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    
+    <div id="status" class="status disconnected">
+        Disconnected
+    </div>
+    
+    <div>
+        <button onclick="connectWebSocket()">Connect</button>
+        <button onclick="requestTraps()">Request Traps</button>
+        <button onclick="setLevel('easy')">Easy</button>
+        <button onclick="setLevel('medium')">Medium</button>
+        <button onclick="setLevel('hard')">Hard</button>
+        <button onclick="setLevel('hardcore')">Hardcore</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <h2>Connection Log:</h2>
+    <div id="log"></div>
+    
+    <script>
+        let ws = null;
+        let isConnected = false;
+        let currentLevel = 'easy';
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            const timestamp = new Date().toLocaleTimeString();
+            messageDiv.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            logDiv.appendChild(messageDiv);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateStatus(connected) {
+            isConnected = connected;
+            const statusDiv = document.getElementById('status');
+            if (connected) {
+                statusDiv.textContent = 'Connected ✅';
+                statusDiv.className = 'status connected';
+            } else {
+                statusDiv.textContent = 'Disconnected ❌';
+                statusDiv.className = 'status disconnected';
+            }
+        }
+        
+        function connectWebSocket() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('Already connected!');
+                return;
+            }
+            
+            // Пробуем разные URL
+            const urls = [
+                'wss://chicken.valor-games.com/ws/',
+                'ws://localhost:8081/ws/',
+                'ws://127.0.0.1:8081/ws/'
+            ];
+            
+            let urlIndex = 0;
+            
+            function tryConnect() {
+                if (urlIndex >= urls.length) {
+                    log('❌ Failed to connect to all URLs', 'error');
+                    return;
+                }
+                
+                const wsUrl = urls[urlIndex];
+                log(`🔌 Attempting to connect to: ${wsUrl}`);
+                
+                try {
+                    ws = new WebSocket(wsUrl);
+                    
+                    ws.onopen = () => {
+                        log(`✅ Connected to WebSocket server at ${wsUrl}`, 'success');
+                        updateStatus(true);
+                        
+                        // Устанавливаем уровень
+                        setLevel(currentLevel);
+                        
+                        // Запрашиваем ловушки
+                        setTimeout(() => requestTraps(), 500);
+                    };
+                    
+                    ws.onmessage = (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            log(`📨 Message received: ${JSON.stringify(data, null, 2)}`);
+                            
+                            if (data.type === 'traps') {
+                                log(`🎯 Traps data: Level=${data.level}, Traps=${JSON.stringify(data.traps)}, Coefficient=${data.coefficient}, Seconds until next=${data.seconds}`);
+                                
+                                if (data.sectors && data.sectors.length > 0) {
+                                    log(`📊 Sectors data (${data.sectors.length} sectors):`);
+                                    data.sectors.forEach(sector => {
+                                        const trapIndicator = sector.isTrap ? '🔥 TRAP' : '✅ Safe';
+                                        log(`   Sector ${sector.id}: ${trapIndicator}, Coefficient: ${sector.coefficient}x`);
+                                    });
+                                }
+                            } else if (data.type === 'traps_all_levels') {
+                                log(`📊 All levels data received:`);
+                                Object.keys(data.traps).forEach(level => {
+                                    const levelData = data.traps[level];
+                                    log(`   ${level}: traps=${JSON.stringify(levelData.traps)}, coefficient=${levelData.coefficient}`);
+                                });
+                            }
+                        } catch (error) {
+                            log(`❌ Error parsing message: ${error.message}`, 'error');
+                        }
+                    };
+                    
+                    ws.onclose = () => {
+                        log('📱 Disconnected from WebSocket server');
+                        updateStatus(false);
+                    };
+                    
+                    ws.onerror = (error) => {
+                        log(`❌ WebSocket error on ${wsUrl}: ${error.message || 'Connection failed'}`, 'error');
+                        updateStatus(false);
+                        
+                        // Пробуем следующий URL
+                        urlIndex++;
+                        setTimeout(tryConnect, 1000);
+                    };
+                    
+                } catch (error) {
+                    log(`❌ Failed to create WebSocket: ${error.message}`, 'error');
+                    urlIndex++;
+                    setTimeout(tryConnect, 1000);
+                }
+            }
+            
+            tryConnect();
+        }
+        
+        function setLevel(level) {
+            currentLevel = level;
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const message = {
+                    type: 'set_level',
+                    level: level
+                };
+                ws.send(JSON.stringify(message));
+                log(`📤 Sent set_level: ${level}`);
+            } else {
+                log('❌ Not connected to WebSocket server', 'error');
+            }
+        }
+        
+        function requestTraps() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const message = {
+                    type: 'request_traps'
+                };
+                ws.send(JSON.stringify(message));
+                log('📤 Sent request_traps');
+            } else {
+                log('❌ Not connected to WebSocket server', 'error');
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // Автоматически подключаемся при загрузке страницы
+        window.addEventListener('load', () => {
+            log('Page loaded, auto-connecting...');
+            setTimeout(connectWebSocket, 1000);
+        });
+    </script>
+</body>
+</html>

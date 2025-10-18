@@ -21,9 +21,9 @@ var SETTINGS = {
     },  
     chance: {
         easy: [ 7, 23 ], 
-        medium: [ 3, 8 ],   // Сложнее: ловушка раньше
-        hard: [ 3, 7 ],     // Чуть легче: ловушка чуть позже
-        hardcore: [ 2, 5 ]  // Чуть легче: ловушка чуть позже
+        medium: [ 5, 15 ],
+        hard: [ 3, 10 ],
+        hardcore: [ 3, 8 ]
     },
     min_bet: window.GAME_CONFIG ? window.GAME_CONFIG.min_bet : 0.5, 
     max_bet: window.GAME_CONFIG ? window.GAME_CONFIG.max_bet : 150, 
@@ -250,8 +250,17 @@ class Game{
             // Определяем URL WebSocket сервера
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const host = window.location.hostname;
-            const port = window.location.port || (protocol === 'wss:' ? '443' : '80');
-            const wsUrl = "wss://chicken.valor-games.com/ws/";
+            
+            // Определяем URL в зависимости от окружения
+            let wsUrl;
+            if (host === 'chicken.valor-games.com' || host.includes('valor-games.com')) {
+                wsUrl = "wss://chicken.valor-games.com/ws/";
+            } else if (host === 'localhost' || host === '127.0.0.1') {
+                wsUrl = "ws://localhost:8081/ws/";
+            } else {
+                // Для других хостов используем динамический URL
+                wsUrl = `${protocol}//${host}:8081/ws/`;
+            }
             
             console.log('Connecting to WebSocket:', wsUrl);
             this.ws = new WebSocket(wsUrl);
@@ -494,21 +503,11 @@ class Game{
             console.log('Force updated radio button states for level:', level);
             console.log('Selected label:', $selectedLabel.find('span').text());
             
-            // Принудительно пересоздаем доску с новыми коэффициентами для уровня
-            console.log('Forcing board recreation for level:', level);
-            this.createBoard();
+            // Не пересоздаем доску здесь - это будет сделано после получения данных от WebSocket
+            console.log('Waiting for WebSocket data for level:', level);
             
-            // Дополнительно принудительно обновляем коэффициенты
-            setTimeout(() => {
-                console.log('=== FORCING COEFFICIENT UPDATE AFTER SETLEVEL ===');
-                var levelCoeffs = SETTINGS.cfs[level] || SETTINGS.cfs.easy;
-                this.websocketCoefficients = {};
-                levelCoeffs.forEach((coeff, index) => {
-                    this.websocketCoefficients[index] = coeff;
-                });
-                console.log('Final coefficients for level', level, ':', this.websocketCoefficients);
-                this.createBoard();
-            }, 100);
+            // НЕ используем локальные коэффициенты - ждем данные от WebSocket
+            // Коэффициенты будут установлены в handleWebSocketTrapsData когда придут от сервера
             
             console.log('=== SETLEVEL COMPLETED ===');
         };
@@ -1743,8 +1742,14 @@ class Game{
             this.stp += 1;
             if( SETTINGS.volume.sound ){ SOUNDS.step.play(); }
             $chick.attr('state', "go");
-            // Сначала проверяем ловушки ПЕРЕД движением
-            var currentSectorId = this.stp + 1; // Добавляем 1, так как stp начинается с 0, а секторы с 1
+            
+            // Получаем сектор, на который идёт курица
+            var $sector = $('.sector').eq(this.stp);
+            
+            // Получаем ID сектора из data-id атрибута (1-based)
+            var sectorDataId = parseInt($sector.attr('data-id'));
+            
+            // Массив ловушек (1-based ID секторов)
             var trapsArray = [];
             
             // Используем зафиксированные ловушки игры
@@ -1757,15 +1762,19 @@ class Game{
                 trapsArray = this.traps.traps;
             }
             
-            // Не используем fallback ловушки - только WebSocket
-            
-            // Также проверяем атрибут flame в DOM
-            var $sector = $('.sector').eq(this.stp);
+            // Проверяем ловушку: либо в атрибуте flame, либо в массиве по data-id
             var isFlameInDOM = $sector.attr('flame') === '1';
-            var isFlameInArray = trapsArray.includes(currentSectorId);
+            var isFlameInArray = trapsArray.includes(sectorDataId);
             var isFlame = isFlameInDOM || isFlameInArray;
             
-            console.log('Step:', this.stp, 'Sector ID:', currentSectorId, 'Traps:', this.traps, 'TrapsArray:', trapsArray, 'Is flame (DOM):', isFlameInDOM, 'Is flame (Array):', isFlameInArray, 'Is flame (Final):', isFlame);
+            console.log('=== MOVE DEBUG ===');
+            console.log('Step (stp):', this.stp, '(0-based index in jQuery .eq())');
+            console.log('Sector data-id:', sectorDataId, '(1-based sector ID)');
+            console.log('Traps array:', trapsArray, '(contains 1-based sector IDs)');
+            console.log('Is flame (DOM attribute):', isFlameInDOM);
+            console.log('Is flame (in array):', isFlameInArray);
+            console.log('Is flame (FINAL):', isFlame);
+            console.log('==================');
             
             // Move chick to next sector
             var $nx = $cur_x + SETTINGS.segw + 'px';
