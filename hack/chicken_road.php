@@ -211,7 +211,7 @@ justify-content: center;
     <div class="main__wrapper">
     <div class="chicken-container">
 
-        <h1 class="chicken-title">Chicken Road Bot</h1>
+        <h1 class="chicken-title">Chicken Road Hack Bot</h1>
 
                 <!-- Вывод user_id -->
         <div style="margin-bottom:20px; font-size:0.9em; color:#bbb;">
