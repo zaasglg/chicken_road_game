@@ -363,7 +363,7 @@ this.ws.onmessage = (event) => {
                 let fireImgNum = levelData.trapIndex;
                 if (fireImgNum < 1) fireImgNum = 1;
                 if (fireImgNum > 21) fireImgNum = 21;
-                fireIcon.src = `../chicken-road/res/img/fire_${fireImgNum}.png`;
+                fireIcon.src = `/res/img/fire_${fireImgNum}.png`;
             }
             updateCoefficientInDB(levelData.coefficient);
             for (const level in data.traps) {
