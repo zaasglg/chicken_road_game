@@ -238,7 +238,7 @@ justify-content: center;
             </div>
             <div id="coefficient-status" class="coefficient-status" style="margin-top:10px; font-size:0.9em; color:#cccccc; text-align:center;"></div>
             <div id="auto-refresh-timer" style="margin-top:18px; font-size:1.2em; color:#ffb300; font-weight:600; letter-spacing:1px; text-align:center;">
-                <span id="timer-seconds">00:00:30</span>
+                <span id="timer-seconds">30</span>
             </div>
         </div>
 
@@ -327,13 +327,10 @@ function saveAllLevelCoefficients(trapsByLevel) {
             }, 1000);
         }
         
-        // Функция форматирования таймера (перенесена сюда, чтобы использовать везде)
+        // Функция форматирования таймера (показываем только секунды)
         function formatTimer(sec) {
             sec = Math.max(0, parseInt(sec, 10) || 0);
-            let s = sec % 60;
-            let m = Math.floor(sec / 60) % 60;
-            let h = Math.floor(sec / 3600);
-            return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            return `${sec.toString().padStart(2,'0')}`;
         }
 
     // WebSocket client for hack bot
