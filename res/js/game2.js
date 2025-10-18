@@ -195,12 +195,17 @@ class Game{
         var isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
         if (isMobile) {
-            // Для мобильных устройств уменьшаем масштаб
-            var mobileScale = baseScale * 0.6; // Уменьшаем на 40%
+            // Для мобильных устройств используем более мягкое уменьшение
+            var mobileScale = baseScale * 0.8; // Уменьшаем только на 20%
             
-            // Дополнительно ограничиваем максимальный размер на очень маленьких экранах
+            // На очень маленьких экранах делаем еще меньше, но не слишком
             if (window.innerWidth <= 480) {
-                mobileScale = Math.min(mobileScale, 0.8);
+                mobileScale = baseScale * 0.7; // Уменьшаем на 30%
+            }
+            
+            // На средних мобильных экранах используем почти полный размер
+            if (window.innerWidth > 480 && window.innerWidth <= 768) {
+                mobileScale = baseScale * 0.85; // Уменьшаем только на 15%
             }
             
             console.log(`Mobile device detected. Base scale: ${baseScale.toFixed(3)}, Mobile scale: ${mobileScale.toFixed(3)}`);
