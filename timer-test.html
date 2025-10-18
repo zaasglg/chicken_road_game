@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timer Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            text-align: center;
+        }
+        h1 {
+            color: #4ecca3;
+            margin-bottom: 40px;
+        }
+        .timer-display {
+            background: rgba(52, 58, 64, 0.8);
+            border: 3px solid #4ecca3;
+            border-radius: 15px;
+            padding: 40px;
+            margin: 30px 0;
+            box-shadow: 0 0 20px rgba(78, 204, 163, 0.3);
+        }
+        .timer-value {
+            font-size: 72px;
+            font-weight: bold;
+            color: #4ecca3;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 20px rgba(78, 204, 163, 0.5);
+            letter-spacing: 5px;
+        }
+        .timer-label {
+            font-size: 18px;
+            color: #aaa;
+            margin-top: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .btn-start {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+        .btn-reset {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+        }
+        .btn-stop {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+        .btn-test {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            color: #000;
+        }
+        .log {
+            background: #0d1117;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 30px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            text-align: left;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(78, 204, 163, 0.2);
+        }
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        .timestamp {
+            color: #6c757d;
+            font-weight: bold;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin-left: 10px;
+            font-size: 12px;
+        }
+        .status-running {
+            background: #28a745;
+            color: white;
+        }
+        .status-stopped {
+            background: #dc3545;
+            color: white;
+        }
+        .status-reset {
+            background: #007bff;
+            color: white;
+        }
+        .info-box {
+            background: rgba(78, 204, 163, 0.1);
+            border-left: 4px solid #4ecca3;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .info-box h3 {
+            margin-top: 0;
+            color: #4ecca3;
+        }
+    </style>
+</head>
+<body>
+    <h1>⏱️ Timer Test & Debug</h1>
+    
+    <div class="timer-display">
+        <div class="timer-value" id="timer-display">00:00:30</div>
+        <div class="timer-label">
+            Timer Status: <span id="timer-status" class="status status-stopped">STOPPED</span>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button class="btn-start" onclick="testStartTimer(30)">Start (30s)</button>
+        <button class="btn-reset" onclick="testStartTimer(15)">Reset to 15s</button>
+        <button class="btn-reset" onclick="testStartTimer(5)">Reset to 5s</button>
+        <button class="btn-stop" onclick="testStopTimer()">Stop</button>
+        <button class="btn-test" onclick="testTimerReachZero()">Test Zero</button>
+        <button class="btn-test" onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <div class="info-box">
+        <h3>🔍 Проблемы и решения:</h3>
+        <ul>
+            <li><strong>Проблема 1:</strong> Таймер останавливается на 0 и не перезапускается</li>
+            <li><strong>Решение:</strong> Автоматический сброс на 30 секунд при достижении 0</li>
+            <li><br></li>
+            <li><strong>Проблема 2:</strong> Конфликт между локальным интервалом и WebSocket данными</li>
+            <li><strong>Решение:</strong> Очистка старого интервала перед созданием нового</li>
+            <li><br></li>
+            <li><strong>Проблема 3:</strong> Таймер может стать отрицательным</li>
+            <li><strong>Решение:</strong> Использование Math.max(0, ...) для защиты</li>
+        </ul>
+    </div>
+    
+    <div class="log" id="log">
+        <div class="log-entry">
+            <span class="timestamp">[Ready]</span> Timer test page loaded. Click "Start" to begin.
+        </div>
+    </div>
+    
+    <script>
+        let timerSeconds = 30;
+        let timerInterval = null;
+        let timerDisplay = null;
+        let timerStatus = null;
+        
+        function formatTimer(sec) {
+            sec = Math.max(0, parseInt(sec, 10) || 0);
+            let s = sec % 60;
+            let m = Math.floor(sec / 60) % 60;
+            let h = Math.floor(sec / 3600);
+            return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        }
+        
+        function startTimer(initialSeconds) {
+            // Очищаем старый интервал если есть
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                log('🔄 Clearing old timer interval');
+            }
+            
+            timerSeconds = Math.max(0, parseInt(initialSeconds, 10) || 30);
+            if (timerDisplay) {
+                timerDisplay.textContent = formatTimer(timerSeconds);
+            }
+            
+            updateStatus('running');
+            log(`✅ Timer started at ${timerSeconds} seconds`);
+            
+            // Создаём новый интервал
+            timerInterval = setInterval(() => {
+                if (timerSeconds > 0) {
+                    timerSeconds--;
+                    if (timerDisplay) {
+                        timerDisplay.textContent = formatTimer(timerSeconds);
+                    }
+                    
+                    // Логируем каждые 5 секунд или последние 3 секунды
+                    if (timerSeconds % 5 === 0 || timerSeconds <= 3) {
+                        log(`⏱️ Timer: ${timerSeconds}s remaining`);
+                    }
+                } else {
+                    // Когда таймер достиг 0, сбрасываем на 30 секунд
+                    log('⚠️ Timer reached 0! Auto-resetting to 30 seconds...');
+                    timerSeconds = 30;
+                    if (timerDisplay) {
+                        timerDisplay.textContent = formatTimer(timerSeconds);
+                    }
+                }
+            }, 1000);
+        }
+        
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                updateStatus('stopped');
+                log('🛑 Timer stopped at ' + timerSeconds + ' seconds');
+            }
+        }
+        
+        function updateStatus(status) {
+            if (timerStatus) {
+                timerStatus.className = 'status';
+                if (status === 'running') {
+                    timerStatus.classList.add('status-running');
+                    timerStatus.textContent = 'RUNNING';
+                } else if (status === 'stopped') {
+                    timerStatus.classList.add('status-stopped');
+                    timerStatus.textContent = 'STOPPED';
+                } else if (status === 'reset') {
+                    timerStatus.classList.add('status-reset');
+                    timerStatus.textContent = 'RESET';
+                }
+            }
+        }
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const timestamp = new Date().toLocaleTimeString();
+            entry.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLog() {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML = '<div class="log-entry"><span class="timestamp">[Cleared]</span> Log cleared.</div>';
+        }
+        
+        // Test functions
+        function testStartTimer(seconds) {
+            startTimer(seconds);
+        }
+        
+        function testStopTimer() {
+            stopTimer();
+        }
+        
+        function testTimerReachZero() {
+            log('🧪 Testing zero condition - setting timer to 2 seconds');
+            startTimer(2);
+        }
+        
+        // Initialize
+        window.addEventListener('load', () => {
+            timerDisplay = document.getElementById('timer-display');
+            timerStatus = document.getElementById('timer-status');
+            timerDisplay.textContent = formatTimer(30);
+            log('🚀 Timer initialized. Ready for testing.');
+        });
+    </script>
+</body>
+</html>

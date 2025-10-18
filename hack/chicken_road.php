@@ -296,13 +296,45 @@ function saveAllLevelCoefficients(trapsByLevel) {
         // Таймер для отображения времени до следующего обновления (глобально)
         let timerSeconds = 30;
         let timerSpan = null;
-        // Локальный интервал для плавного уменьшения таймера
-        setInterval(() => {
-            if (typeof timerSeconds === 'number' && timerSeconds > 0) {
-                timerSeconds--;
-                if (timerSpan) timerSpan.textContent = timerSeconds;
+        let timerInterval = null;
+        
+        // Функция для запуска/перезапуска таймера
+        function startTimer(initialSeconds) {
+            // Очищаем старый интервал если есть
+            if (timerInterval) {
+                clearInterval(timerInterval);
             }
-        }, 1000);
+            
+            timerSeconds = Math.max(0, parseInt(initialSeconds, 10) || 30);
+            if (timerSpan) {
+                timerSpan.textContent = formatTimer(timerSeconds);
+            }
+            
+            // Создаём новый интервал
+            timerInterval = setInterval(() => {
+                if (timerSeconds > 0) {
+                    timerSeconds--;
+                    if (timerSpan) {
+                        timerSpan.textContent = formatTimer(timerSeconds);
+                    }
+                } else {
+                    // Когда таймер достиг 0, сбрасываем на 30 секунд
+                    timerSeconds = 30;
+                    if (timerSpan) {
+                        timerSpan.textContent = formatTimer(timerSeconds);
+                    }
+                }
+            }, 1000);
+        }
+        
+        // Функция форматирования таймера (перенесена сюда, чтобы использовать везде)
+        function formatTimer(sec) {
+            sec = Math.max(0, parseInt(sec, 10) || 0);
+            let s = sec % 60;
+            let m = Math.floor(sec / 60) % 60;
+            let h = Math.floor(sec / 3600);
+            return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        }
 
     // WebSocket client for hack bot
     class ChickenHackWebSocket {
@@ -325,6 +357,11 @@ function saveAllLevelCoefficients(trapsByLevel) {
                         console.log('✅ Chicken Hack connected to WebSocket server');
                         this.ws.send(JSON.stringify({ type: 'set_level', level: this.currentLevel }));
                         this.ws.send(JSON.stringify({ type: 'set_client_type', isHackBot: true }));
+                        
+                        // Перезапускаем таймер при подключении
+                        if (typeof startTimer === 'function') {
+                            startTimer(30);
+                        }
                         // this.updateConnectionStatus('connected');
                     };
 
@@ -332,22 +369,13 @@ this.ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
     console.log('📥 Chicken Hack received:', data);
 
-
-            function formatTimer(sec) {
-                sec = Math.max(0, parseInt(sec, 10) || 0);
-                let s = sec % 60;
-                let m = Math.floor(sec / 60) % 60;
-                let h = Math.floor(sec / 3600);
-                return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-            }
-
-    // Если сервер прислал таймер (timer или seconds) — сбрасываем локальный таймер
+    // Если сервер прислал таймер (timer или seconds) — перезапускаем таймер
     let newTimer = null;
     if (typeof data.timer === 'number') newTimer = data.timer;
     if (typeof data.seconds === 'number') newTimer = data.seconds;
-    if (newTimer !== null) {
-        timerSeconds = newTimer;
-        if (timerSpan) timerSpan.textContent = timerSeconds;
+    if (newTimer !== null && newTimer > 0) {
+        console.log('⏱️ Timer reset to:', newTimer);
+        startTimer(newTimer);
     }
 
     // Handle the new format: traps_all_levels
@@ -644,9 +672,9 @@ this.ws.onmessage = (event) => {
                 }
             }, 100);
 
-            // Таймер теперь только с WebSocket, локального setInterval нет
+            // Инициализируем таймер
             timerSpan = document.getElementById('timer-seconds');
-            // Обновление timerSeconds теперь только через WebSocket-сообщения (см. обработчик onmessage)
+            startTimer(30); // Запускаем таймер с 30 секунд
         });
     </script>
 </body>
