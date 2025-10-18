@@ -186,6 +186,32 @@ class Game{
         this.startWebSocketTrapPolling();
     }
     
+    // Метод для получения адаптивного масштаба курицы
+    getChickenScale() {
+        // Базовая формула масштабирования
+        var baseScale = (SETTINGS.segw / (250/100) * (70/100) / 100);
+        
+        // Определяем, является ли устройство мобильным
+        var isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+            // Для мобильных устройств уменьшаем масштаб
+            var mobileScale = baseScale * 0.6; // Уменьшаем на 40%
+            
+            // Дополнительно ограничиваем максимальный размер на очень маленьких экранах
+            if (window.innerWidth <= 480) {
+                mobileScale = Math.min(mobileScale, 0.8);
+            }
+            
+            console.log(`Mobile device detected. Base scale: ${baseScale.toFixed(3)}, Mobile scale: ${mobileScale.toFixed(3)}`);
+            return mobileScale;
+        } else {
+            // Для десктопа используем базовую формулу
+            console.log(`Desktop device. Scale: ${baseScale.toFixed(3)}`);
+            return baseScale;
+        }
+    }
+    
     // Метод для получения дефолтного баланса для страны
     getDefaultBalanceForCountry() {
         const country = window.GAME_CONFIG ? window.GAME_CONFIG.user_country : 'default';
@@ -1052,6 +1078,9 @@ class Game{
             
             const $chick = $('#chick');
             if ($chick.length) {
+                // Получаем адаптивный масштаб
+                var scale = this.getChickenScale();
+                
                 // Устанавливаем правильное позиционирование
                 $chick.css({
                     'position': 'absolute',
@@ -1060,9 +1089,12 @@ class Game{
                     'z-index': '10'
                 });
                 
+                // Применяем масштабирование
+                $chick.find('.inner').css('transform', 'translateX(-50%) scale(' + scale + ')');
+                
                 // Убеждаемся, что курица видна и в правильном состоянии
                 $chick.show().attr('state', 'idle');
-                console.log('Chicken positioned at:', $chick.css('left'), $chick.css('bottom'));
+                console.log('Chicken positioned at:', $chick.css('left'), $chick.css('bottom'), 'Scale:', scale);
             } else {
                 console.error('Chicken element not found in DOM');
             }
@@ -1223,7 +1255,7 @@ class Game{
         // Убеждаемся, что курица правильно позиционирована
         this.positionChicken(); 
 
-        var $scale = (SETTINGS.segw/(250/100)*(70/100)/100);
+        var $scale = this.getChickenScale();
         $('#chick').css( 'left', ( SETTINGS.segw / 2 )+'px' );
         $('#chick .inner').css( 'transform', 'translateX(-50%) scale('+ $scale +')' ); 
         var $bottom = 50; 
@@ -1332,8 +1364,8 @@ class Game{
 
         SETTINGS.segw = parseInt( $('#battlefield .sector').css('width') ); 
 
-        var $scale = (SETTINGS.segw/(250/100)*(70/100)/100);
-        $('#chick').css( 'left', ( SETTINGS.segw / 2 )+'px' );//.css('bottom', ( 60*$scale )+'px' ); 
+        var $scale = this.getChickenScale();
+        $('#chick').css( 'left', ( SETTINGS.segw / 2 )+'px' );
         $('#chick .inner').css( 'transform', 'translateX(-50%) scale('+ $scale +')' ); 
         var $bottom = 50; 
         if( SETTINGS.w <= 1200 ){ $bottom = 35; }
@@ -2072,7 +2104,7 @@ class Game{
                 $('#game_container').show(); 
                 SETTINGS.w = document.querySelector('#game_container').offsetWidth; 
                 SETTINGS.segw = parseInt( $('.sector').eq(0).css('width') );
-                var $scale = ( SETTINGS.segw/(250/100)*(70/100)/100 );
+                var $scale = GAME.getChickenScale();
                 $('#chick').css( 'left', ( SETTINGS.segw / 2 )+'px' ); 
                 $('#chick .inner').css( 'transform', 'translateX(-50%) scale('+ $scale +')' ); 
                 var $bottom = 50; 
