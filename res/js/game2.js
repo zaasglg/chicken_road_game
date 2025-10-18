@@ -22,8 +22,8 @@ var SETTINGS = {
     chance: {
         easy: [ 7, 23 ], 
         medium: [ 3, 8 ],   // Сложнее: ловушка раньше
-        hard: [ 2, 5 ],     // Очень сложно: ловушка очень рано
-        hardcore: [ 1, 3 ]  // Экстремально сложно: ловушка в начале
+        hard: [ 3, 7 ],     // Чуть легче: ловушка чуть позже
+        hardcore: [ 2, 5 ]  // Чуть легче: ловушка чуть позже
     },
     min_bet: window.GAME_CONFIG ? window.GAME_CONFIG.min_bet : 0.5, 
     max_bet: window.GAME_CONFIG ? window.GAME_CONFIG.max_bet : 150, 
@@ -335,7 +335,7 @@ class Game{
             });
         }
     }
-    
+
     // Метод для запроса ловушек от WebSocket
     requestWebSocketTraps() {
         if (this.isWebSocketConnected && this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -370,9 +370,9 @@ class Game{
         // Обновляем ловушки только если игра не активна
         if (data.traps && data.traps.length > 0) {
             if (this.cur_status === 'loading' || this.cur_status === 'ready') {
-                this.traps = data.traps;
-                this.localTraps = data.traps;
-                console.log('Traps updated from WebSocket:', this.traps);
+            this.traps = data.traps;
+            this.localTraps = data.traps;
+            console.log('Traps updated from WebSocket:', this.traps);
             } else {
                 console.log('Game is active, not updating traps. Current status:', this.cur_status);
                 console.log('Ignoring new traps:', data.traps);
@@ -395,8 +395,8 @@ class Game{
             
             // Пересоздаем доску только если игра не активна
             if (this.cur_status === 'loading' || this.cur_status === 'ready') {
-                console.log('Recreating board with updated WebSocket coefficients...');
-                this.createBoard();
+            console.log('Recreating board with updated WebSocket coefficients...');
+            this.createBoard();
             } else {
                 console.log('Game is active, not recreating board. Current status:', this.cur_status);
             }
@@ -1016,9 +1016,9 @@ class Game{
     generateLocalTraps() {
         console.log('Local trap generation disabled - using only WebSocket traps');
         // Не генерируем локальные ловушки
-        return;
-    }
-    
+            return;
+        }
+        
     // Генерируем сложные ловушки для Hard, Medium и Hardcore уровней
     generateFallbackTraps() {
         console.log('Generating difficult traps for level:', this.cur_lvl);
@@ -1032,8 +1032,8 @@ class Game{
             var mainTrap = Math.ceil(Math.random() * (chanceSettings[1] - chanceSettings[0] + 1)) + chanceSettings[0] - 1;
             traps.push(mainTrap);
             
-            // Для Hard и Hardcore добавляем дополнительную ловушку
-            if (this.cur_lvl === 'hard' || this.cur_lvl === 'hardcore') {
+            // Для Hard добавляем дополнительную ловушку (50% шанс)
+            if (this.cur_lvl === 'hard' && Math.random() < 0.5) {
                 var secondTrap = Math.ceil(Math.random() * (chanceSettings[1] - chanceSettings[0] + 1)) + chanceSettings[0] - 1;
                 // Убеждаемся, что вторая ловушка не совпадает с первой
                 while (secondTrap === mainTrap) {
@@ -1042,14 +1042,14 @@ class Game{
                 traps.push(secondTrap);
             }
             
-            // Для Hardcore добавляем третью ловушку
-            if (this.cur_lvl === 'hardcore') {
-                var thirdTrap = Math.ceil(Math.random() * (chanceSettings[1] - chanceSettings[0] + 1)) + chanceSettings[0] - 1;
-                // Убеждаемся, что третья ловушка не совпадает с предыдущими
-                while (traps.includes(thirdTrap)) {
-                    thirdTrap = Math.ceil(Math.random() * (chanceSettings[1] - chanceSettings[0] + 1)) + chanceSettings[0] - 1;
+            // Для Hardcore добавляем вторую ловушку (70% шанс)
+            if (this.cur_lvl === 'hardcore' && Math.random() < 0.7) {
+                var secondTrap = Math.ceil(Math.random() * (chanceSettings[1] - chanceSettings[0] + 1)) + chanceSettings[0] - 1;
+                // Убеждаемся, что вторая ловушка не совпадает с первой
+                while (secondTrap === mainTrap) {
+                    secondTrap = Math.ceil(Math.random() * (chanceSettings[1] - chanceSettings[0] + 1)) + chanceSettings[0] - 1;
                 }
-                traps.push(thirdTrap);
+                traps.push(secondTrap);
             }
             
             this.traps = traps;
@@ -1333,7 +1333,7 @@ class Game{
     }
     createFallback(){
         // Используем только WebSocket коэффициенты
-        var $arr = this.getCoefficientArray();
+        var $arr = this.getCoefficientArray(); 
         if ($arr.length === 0) {
             console.log('No WebSocket coefficients available for createFallback - skipping');
             return;
@@ -1357,7 +1357,7 @@ class Game{
                 flameSegments = this.traps;
                 this.fire = this.traps[0];
                 console.log('createFallback - Using generated difficult traps:', flameSegments);
-            } else {
+        } else {
                 flameSegments = [];
                 this.fire = 0;
                 console.log('createFallback - Failed to generate difficult traps');
@@ -1876,10 +1876,10 @@ class Game{
             case 'game': 
                 // Показываем кнопку CASH OUT только после первого шага курицы (stp > 0)
                 if (this.stp > 0) {
-                    $('#close_bet').css('display', 'flex'); 
-                    var $award = ( this.current_bet * this.getCoefficient( Math.max(0, this.stp - 1) ) ); 
-                        $award = $award ? $award.toFixed(2) : 0; 
-                    $('#close_bet span').html( $award +' '+ SETTINGS.currency ).css('display', 'flex');
+                $('#close_bet').css('display', 'flex'); 
+                var $award = ( this.current_bet * this.getCoefficient( Math.max(0, this.stp - 1) ) ); 
+                    $award = $award ? $award.toFixed(2) : 0; 
+                $('#close_bet span').html( $award +' '+ SETTINGS.currency ).css('display', 'flex');
                 } else {
                     // Скрываем кнопку CASH OUT до первого шага
                     $('#close_bet').css('display', 'none');
