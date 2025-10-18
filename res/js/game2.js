@@ -21,9 +21,9 @@ var SETTINGS = {
     },  
     chance: {
         easy: [ 7, 23 ], 
-        medium: [ 5, 15 ], 
-        hard: [ 3, 10 ], 
-        hardcore: [ 2, 6 ]
+        medium: [ 3, 8 ],   // Сложнее: ловушка раньше
+        hard: [ 2, 5 ],     // Очень сложно: ловушка очень рано
+        hardcore: [ 1, 3 ]  // Экстремально сложно: ловушка в начале
     },
     min_bet: window.GAME_CONFIG ? window.GAME_CONFIG.min_bet : 0.5, 
     max_bet: window.GAME_CONFIG ? window.GAME_CONFIG.max_bet : 150, 
@@ -1019,11 +1019,45 @@ class Game{
         return;
     }
     
-    // Отключено - используем только WebSocket ловушки
+    // Генерируем сложные ловушки для Hard, Medium и Hardcore уровней
     generateFallbackTraps() {
-        console.log('Fallback trap generation disabled - using only WebSocket traps');
-        // Не генерируем fallback ловушки
-        return;
+        console.log('Generating difficult traps for level:', this.cur_lvl);
+        
+        // Генерируем ловушки только для сложных уровней
+        if (['medium', 'hard', 'hardcore'].includes(this.cur_lvl)) {
+            var chanceSettings = SETTINGS.chance[this.cur_lvl];
+            var traps = [];
+            
+            // Генерируем основную ловушку
+            var mainTrap = Math.ceil(Math.random() * (chanceSettings[1] - chanceSettings[0] + 1)) + chanceSettings[0] - 1;
+            traps.push(mainTrap);
+            
+            // Для Hard и Hardcore добавляем дополнительную ловушку
+            if (this.cur_lvl === 'hard' || this.cur_lvl === 'hardcore') {
+                var secondTrap = Math.ceil(Math.random() * (chanceSettings[1] - chanceSettings[0] + 1)) + chanceSettings[0] - 1;
+                // Убеждаемся, что вторая ловушка не совпадает с первой
+                while (secondTrap === mainTrap) {
+                    secondTrap = Math.ceil(Math.random() * (chanceSettings[1] - chanceSettings[0] + 1)) + chanceSettings[0] - 1;
+                }
+                traps.push(secondTrap);
+            }
+            
+            // Для Hardcore добавляем третью ловушку
+            if (this.cur_lvl === 'hardcore') {
+                var thirdTrap = Math.ceil(Math.random() * (chanceSettings[1] - chanceSettings[0] + 1)) + chanceSettings[0] - 1;
+                // Убеждаемся, что третья ловушка не совпадает с предыдущими
+                while (traps.includes(thirdTrap)) {
+                    thirdTrap = Math.ceil(Math.random() * (chanceSettings[1] - chanceSettings[0] + 1)) + chanceSettings[0] - 1;
+                }
+                traps.push(thirdTrap);
+            }
+            
+            this.traps = traps;
+            this.localTraps = traps;
+            console.log(`Generated ${traps.length} traps for ${this.cur_lvl}:`, traps);
+        } else {
+            console.log('Easy level - no additional traps generated');
+        }
     }
     
     
@@ -1188,16 +1222,28 @@ class Game{
         console.log('Current traps array:', this.traps);
         console.log('Current localTraps array:', this.localTraps);
         
-        // Используем только WebSocket ловушки
+        // Используем WebSocket ловушки или генерируем локальные для сложных уровней
         if (this.traps && this.traps.length > 0) {
             flameSegments = this.traps;
             this.fire = this.traps[0];
             console.log('Using traps from WebSocket:', flameSegments);
+        } else if (['medium', 'hard', 'hardcore'].includes(this.cur_lvl)) {
+            // Генерируем локальные ловушки для сложных уровней
+            this.generateFallbackTraps();
+            if (this.traps && this.traps.length > 0) {
+                flameSegments = this.traps;
+                this.fire = this.traps[0];
+                console.log('Using generated difficult traps:', flameSegments);
+            } else {
+                flameSegments = [];
+                this.fire = 0;
+                console.log('Failed to generate difficult traps');
+            }
         } else {
-            // Если WebSocket ловушек нет, создаем доску без ловушек
+            // Для Easy уровня создаем доску без ловушек
             flameSegments = [];
             this.fire = 0;
-            console.log('No WebSocket traps available, creating board without traps');
+            console.log('Easy level - creating board without traps');
         }
         
         console.log('Fire position:', this.fire, 'Flame segments:', flameSegments);
@@ -1298,17 +1344,29 @@ class Game{
                                 <img src="./res/img/arc.png" class="entry" alt="">
                                 <div class="border"></div>
                             </div>`); 
-        // Используем только WebSocket ловушки
+        // Используем WebSocket ловушки или генерируем локальные для сложных уровней
         var flameSegments = [];
         if (this.traps && this.traps.length > 0) {
             flameSegments = this.traps;
             this.fire = this.traps[0];
             console.log('createFallback - Using traps from WebSocket:', flameSegments);
+        } else if (['medium', 'hard', 'hardcore'].includes(this.cur_lvl)) {
+            // Генерируем локальные ловушки для сложных уровней
+            this.generateFallbackTraps();
+            if (this.traps && this.traps.length > 0) {
+                flameSegments = this.traps;
+                this.fire = this.traps[0];
+                console.log('createFallback - Using generated difficult traps:', flameSegments);
+            } else {
+                flameSegments = [];
+                this.fire = 0;
+                console.log('createFallback - Failed to generate difficult traps');
+            }
         } else {
-            // Если WebSocket ловушек нет, создаем доску без ловушек
+            // Для Easy уровня создаем доску без ловушек
             flameSegments = [];
             this.fire = 0;
-            console.log('createFallback - No WebSocket traps available, creating board without traps');
+            console.log('createFallback - Easy level, creating board without traps');
         }
         
         console.log('createFallback - Fire position:', this.fire, 'Flame segments:', flameSegments); 
