@@ -232,7 +232,7 @@ justify-content: center;
 
         <div class="coefficient-display" style="position:relative; overflow:visible;">
             <div style="display:flex; align-items:center; justify-content:center; margin-bottom:10px;">
-                <img id="fire-icon" src="/chicken-road/res/img/fire_1.png" style="width:48px; height:48px; margin-right:12px; display:none; animation: firePulse 1.2s infinite alternate;" alt="fire">
+                <img id="fire-icon" src="/res/img/fire_4.png" style="width:48px; height:48px; margin-right:12px; display:none; animation: firePulse 1.2s infinite alternate;" alt="fire">
                 
                 <span id="coefficient-number" class="coefficient-number" style="font-size:3.2em; color:#ffb300; text-shadow:0 0 8px #ffb30099;"><?php echo number_format($trap_coefficient, 2, '.', ''); ?></span><span class="x-symbol" style="color:#ffb300;">x</span>
             </div>
