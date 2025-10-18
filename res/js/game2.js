@@ -1541,6 +1541,10 @@ class Game{
         }
         this.updateBalanceDisplay(); 
         // Баланс теперь обновляется через API напрямую, не нужно вызывать updateBalanceOnServer
+        
+        // Активируем кнопку Cashout для новой игры
+        $('#close_bet').prop('disabled', false);
+        console.log("Cashout button enabled for new game");
         $('.sector').off().on('click', function(){ 
             // Проверяем, что курица может двигаться
             if (GAME.cur_status === 'game' && GAME.alife && CHICKEN.alife) {
@@ -1602,6 +1606,11 @@ class Game{
             this.balance = Math.round(this.balance * 100) / 100; // Округляем до 2 знаков
             this.updateBalanceDisplay();
             if( SETTINGS.volume.sound ){ SOUNDS.lose.play(); } 
+            
+            // Отключаем кнопку Cashout при проигрыше
+            $('#close_bet').css('display', 'none');
+            $('#close_bet').prop('disabled', true);
+            console.log("Cashout button disabled due to loss");
             
             // Не отправляем сообщение в WebSocket - просто используем последнюю ловушку
             console.log("Chicken burned, using current WebSocket trap data");
