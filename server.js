@@ -15,6 +15,7 @@ const server = http.createServer();
 const wss = new WebSocket.Server({ server, path: "/ws/" }); // слушаем именно /ws
 
 let lastTrapsByLevel = { easy: [], medium: [], hard: [], hardcore: [] };
+let lastTrapIndexByLevel = { easy: null, medium: null, hard: null, hardcore: null }; // Храним последний индекс ловушки
 let lastBroadcastTime = Date.now();
 const BROADCAST_INTERVAL = 30000;
 
@@ -50,8 +51,10 @@ wss.on('connection', (ws) => {
                 // Если еще не было broadcast, генерируем первый раз
                 if (!trapData) {
                     const broadcastSeed = Date.now();
-                    trapData = generateTraps(level, 0, broadcastSeed);
+                    const lastIndex = lastTrapIndexByLevel[level];
+                    trapData = generateTraps(level, 0, broadcastSeed, lastIndex);
                     lastTrapsByLevel[level] = trapData;
+                    lastTrapIndexByLevel[level] = trapData.trapIndex;
                     console.log(`First generation for level ${level}:`, trapData.trapIndex);
                 }
                 
@@ -109,8 +112,11 @@ setInterval(() => {
         const trapsByLevel = {};
 
         allLevels.forEach(level => {
-            const trapData = generateTraps(level, 0, broadcastSeed);
+            const lastIndex = lastTrapIndexByLevel[level];
+            const trapData = generateTraps(level, 0, broadcastSeed, lastIndex);
             trapsByLevel[level] = trapData;
+            // Сохраняем новый индекс для следующей генерации
+            lastTrapIndexByLevel[level] = trapData.trapIndex;
         });
 
         Object.assign(lastTrapsByLevel, trapsByLevel);
@@ -134,7 +140,7 @@ setInterval(() => {
     }
 }, 30000);
 
-function generateTraps(level, clientIndex = 0, broadcastSeed = null) {
+function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapIndex = null) {
     const chance = SETTINGS.chance[level];
     if (!chance) return { traps: [], coefficient: 1.0, trapIndex: 0, sectors: [] };
 
@@ -150,7 +156,28 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null) {
 
     const levelCoeffs = coefficients[level] || coefficients.easy;
     const maxTrap = chance[Math.round(random() * 100) > 95 ? 1 : 0];
-    const flameIndex = Math.ceil(random() * maxTrap);
+    
+    let flameIndex;
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    // Генерируем новый индекс, который отличается от предыдущего
+    do {
+        flameIndex = Math.ceil(random() * maxTrap);
+        attempts++;
+        
+        // Если за 10 попыток не получилось сгенерировать другой индекс,
+        // принудительно выбираем следующий или предыдущий
+        if (attempts >= maxAttempts && flameIndex === lastTrapIndex) {
+            if (flameIndex < maxTrap) {
+                flameIndex++;
+            } else if (flameIndex > 1) {
+                flameIndex--;
+            }
+            break;
+        }
+    } while (flameIndex === lastTrapIndex && attempts < maxAttempts);
+    
     const coefficient = levelCoeffs[flameIndex - 1] || levelCoeffs[0];
 
     // Создаем массив секторов с коэффициентами
@@ -164,7 +191,8 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null) {
         });
     }
 
-    console.log(`Client ${clientIndex}: Level: ${level}, Trap index: ${flameIndex}, Coefficient: ${coefficient}x`);
+    const logPrefix = lastTrapIndex !== null && lastTrapIndex === flameIndex ? '⚠️ SAME' : '✅ NEW';
+    console.log(`${logPrefix} Client ${clientIndex}: Level: ${level}, Trap index: ${flameIndex} (prev: ${lastTrapIndex}), Coefficient: ${coefficient}x`);
 
     return { 
         level: level,
