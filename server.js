@@ -3,10 +3,10 @@ const WebSocket = require('ws');
 
 const SETTINGS = {
     chance: {
-        easy: [7, 23],
-        medium: [5, 15],
-        hard: [3, 10],
-        hardcore: [3, 8]
+        easy: [7, 23],      // Easy: ловушка на 7-23 секторе (легко)
+        medium: [3, 10],    // Medium: ловушка на 3-10 секторе (сложнее)
+        hard: [2, 7],       // Hard: ловушка на 2-7 секторе (очень сложно)
+        hardcore: [2, 5]    // Hardcore: ловушка на 2-5 секторе (экстремально)
     }
 };
 
