@@ -20,10 +20,10 @@ var SETTINGS = {
         hardcore: [ 1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19 ]
     },  
     chance: {
-        easy: [ 7, 23 ], 
-        medium: [ 5, 15 ],
-        hard: [ 3, 10 ],
-        hardcore: [ 3, 8 ]
+        easy: [ 7, 23 ],      // Easy: ловушка на 7-23 секторе (легко)
+        medium: [ 3, 10 ],    // Medium: ловушка на 3-10 секторе (сложнее)
+        hard: [ 2, 7 ],       // Hard: ловушка на 2-7 секторе (очень сложно)
+        hardcore: [ 2, 5 ]    // Hardcore: ловушка на 2-5 секторе (экстремально)
     },
     min_bet: window.GAME_CONFIG ? window.GAME_CONFIG.min_bet : 0.5, 
     max_bet: window.GAME_CONFIG ? window.GAME_CONFIG.max_bet : 150, 
