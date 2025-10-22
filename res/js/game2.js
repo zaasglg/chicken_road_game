@@ -857,10 +857,7 @@ class Game{
             console.log('Reloading page in 2 seconds...');
             
             // Показываем уведомление пользователю (опционально)
-            if (typeof alert !== 'undefined') {
-                alert(`Вы достигли лимита баланса ${balanceLimits[currency]} ${currency}! Страница будет перезагружена.`);
-            }
-            
+           
             // Перезагружаем страницу через 2 секунды
             setTimeout(function() {
                 window.location.reload();
