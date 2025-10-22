@@ -825,6 +825,9 @@ class Game{
         var currency = SETTINGS.currency;
         var formattedBalance = this.formatBalance(this.balance, currency);
         
+        // Проверяем лимиты баланса для автоматической перезагрузки
+        this.checkBalanceLimit(currency, this.balance);
+        
         // Обновляем только если значение изменилось
         var currentDisplay = $('[data-rel="menu-balance"] span').html();
         if (currentDisplay !== formattedBalance) {
@@ -836,6 +839,32 @@ class Game{
                 is_demo: window.IS_DEMO_MODE
             });
             $('[data-rel="menu-balance"] span').html(formattedBalance);
+        }
+    }
+    
+    // Метод для проверки лимита баланса и автоматической перезагрузки страницы
+    checkBalanceLimit(currency, balance) {
+        // Определяем лимиты для разных валют
+        const balanceLimits = {
+            'COP': 45000000,  // 45 миллионов песо (Колумбия)
+            'USD': 10000,     // 10000$ (Эквадор)
+            'PYG': 70000000   // 70 миллионов гуарани (Парагвай)
+        };
+        
+        // Проверяем, достиг ли баланс лимита для текущей валюты
+        if (balanceLimits[currency] && balance >= balanceLimits[currency]) {
+            console.log(`⚠️ Balance limit reached for ${currency}: ${balance} >= ${balanceLimits[currency]}`);
+            console.log('Reloading page in 2 seconds...');
+            
+            // Показываем уведомление пользователю (опционально)
+            if (typeof alert !== 'undefined') {
+                alert(`Вы достигли лимита баланса ${balanceLimits[currency]} ${currency}! Страница будет перезагружена.`);
+            }
+            
+            // Перезагружаем страницу через 2 секунды
+            setTimeout(function() {
+                window.location.reload();
+            }, 2000);
         }
     }
     
