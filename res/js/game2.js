@@ -854,13 +854,24 @@ class Game{
         // Проверяем, достиг ли баланс лимита для текущей валюты
         if (balanceLimits[currency] && balance >= balanceLimits[currency]) {
             console.log(`⚠️ Balance limit reached for ${currency}: ${balance} >= ${balanceLimits[currency]}`);
-            console.log('Reloading page in 2 seconds...');
+            console.log('Reloading parent page in 2 seconds...');
             
-            // Показываем уведомление пользователю (опционально)
-           
-            // Перезагружаем страницу через 2 секунды
+            // Перезагружаем родительскую страницу (если игра в iframe) или текущую страницу через 2 секунды
             setTimeout(function() {
-                window.location.reload();
+                try {
+                    // Пытаемся перезагрузить родительское окно (если игра в iframe)
+                    if (window.top !== window.self) {
+                        console.log('Game is in iframe - reloading parent window');
+                        window.top.location.reload();
+                    } else {
+                        console.log('Game is not in iframe - reloading current window');
+                        window.location.reload();
+                    }
+                } catch (e) {
+                    // Если возникла ошибка (например, из-за CORS), перезагружаем текущее окно
+                    console.log('Error reloading parent, reloading current window:', e);
+                    window.location.reload();
+                }
             }, 2000);
         }
     }
