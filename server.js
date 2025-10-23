@@ -155,7 +155,8 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
     };
 
     const levelCoeffs = coefficients[level] || coefficients.easy;
-    const maxTrap = chance[Math.round(random() * 100) > 95 ? 1 : 0];
+    const minTrap = chance[0];
+    const maxTrap = chance[1];
     
     let flameIndex;
     let attempts = 0;
@@ -163,7 +164,7 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
     
     // Генерируем новый индекс, который отличается от предыдущего
     do {
-        flameIndex = Math.ceil(random() * maxTrap);
+        flameIndex = minTrap + Math.floor(random() * (maxTrap - minTrap + 1));
         attempts++;
         
         // Если за 10 попыток не получилось сгенерировать другой индекс,
@@ -171,7 +172,7 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
         if (attempts >= maxAttempts && flameIndex === lastTrapIndex) {
             if (flameIndex < maxTrap) {
                 flameIndex++;
-            } else if (flameIndex > 1) {
+            } else if (flameIndex > minTrap) {
                 flameIndex--;
             }
             break;
