@@ -167,7 +167,7 @@
                     .then(function(data) {
                         if (data.success) {
                             var userInfo = data.user ? 
-                                `¡Bienvenido, ${data.user.nombre || data.user.email || 'Usuario'}!` : 
+                                `¡Bienvenido!` : 
                                 '¡Inicio de sesión exitoso!';
                             showNotify(userInfo, 'success');
                             setTimeout(function() {
