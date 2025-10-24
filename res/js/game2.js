@@ -2421,18 +2421,21 @@ class Game{
                 var apiBalance = parseFloat(data.deposit);
                 var currentBalance = this.balance;
                 
-                // Не перезаписываем баланс, если текущий больше (игра еще не завершена на сервере)
-                if (apiBalance < currentBalance) {
-                    console.log('API balance is lower than current balance, keeping current:', {
+                // В реальном режиме всегда используем баланс из API
+                // Исключение: только если игра активна и текущий баланс больше (игрок выиграл)
+                if (this.status === 'active' && apiBalance < currentBalance) {
+                    console.log('Game is active and API balance is lower, keeping current balance:', {
                         api_balance: apiBalance,
-                        current_balance: currentBalance
+                        current_balance: currentBalance,
+                        game_status: this.status
                     });
                     // Обновляем только отображение, но не сам баланс
                     $('[data-rel="menu-balance"] span').html(this.formatBalance(currentBalance, SETTINGS.currency));
-                    } else {
+                } else {
+                    // В остальных случаях всегда используем баланс из API
                     this.balance = apiBalance;
                     this.updateBalanceDisplay();
-                    console.log('Balance updated from user info API:', this.balance);
+                    console.log('Balance updated from user info API:', this.balance, 'Game status:', this.status);
                 }
                 
                 // Обновляем конфигурацию игры с данными из API
