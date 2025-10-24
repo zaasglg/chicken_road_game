@@ -16,6 +16,15 @@ const wss = new WebSocket.Server({ server, path: "/ws/" }); // слушаем и
 
 let lastTrapsByLevel = { easy: [], medium: [], hard: [], hardcore: [] };
 let lastTrapIndexByLevel = { easy: null, medium: null, hard: null, hardcore: null }; // Храним последний индекс ловушки
+// Храним историю последних 5 ловушек для каждого уровня, чтобы избежать повторов
+let trapHistory = { 
+    easy: [], 
+    medium: [], 
+    hard: [], 
+    hardcore: [] 
+};
+const MAX_HISTORY_SIZE = 5; // Храним последние 5 ловушек
+
 let lastBroadcastTime = Date.now();
 const BROADCAST_INTERVAL = 30000;
 
@@ -158,26 +167,71 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
     const minTrap = chance[0];
     const maxTrap = chance[1];
     
+    // Получаем историю ловушек для текущего уровня
+    const history = trapHistory[level] || [];
+    
     let flameIndex;
     let attempts = 0;
-    const maxAttempts = 10;
+    const maxAttempts = 30;
     
-    // Генерируем новый индекс, который отличается от предыдущего
+    // Генерируем новый индекс с взвешенным распределением (больше шансов для высоких коэффициентов)
     do {
-        flameIndex = minTrap + Math.floor(random() * (maxTrap - minTrap + 1));
+        // Используем взвешенное распределение: 25% маленькие, 35% средние, 40% большие
+        const zoneRoll = random();
+        let zoneMin, zoneMax;
+        
+        const rangeSize = maxTrap - minTrap + 1;
+        const lowZone = Math.floor(rangeSize * 0.33);    // Первая треть
+        const midZone = Math.floor(rangeSize * 0.67);    // Вторая треть
+        
+        if (zoneRoll < 0.25) {
+            // 25% - маленькие коэффициенты (первая треть)
+            zoneMin = minTrap;
+            zoneMax = minTrap + lowZone;
+        } else if (zoneRoll < 0.60) {
+            // 35% - средние коэффициенты (средняя треть)
+            zoneMin = minTrap + lowZone;
+            zoneMax = minTrap + midZone;
+        } else {
+            // 40% - большие коэффициенты (последняя треть)
+            zoneMin = minTrap + midZone;
+            zoneMax = maxTrap;
+        }
+        
+        // Генерируем индекс в выбранной зоне
+        flameIndex = zoneMin + Math.floor(random() * (zoneMax - zoneMin + 1));
+        
+        // Ограничиваем диапазон
+        if (flameIndex < minTrap) flameIndex = minTrap;
+        if (flameIndex > maxTrap) flameIndex = maxTrap;
+        
         attempts++;
         
-        // Если за 10 попыток не получилось сгенерировать другой индекс,
-        // принудительно выбираем следующий или предыдущий
-        if (attempts >= maxAttempts && flameIndex === lastTrapIndex) {
-            if (flameIndex < maxTrap) {
-                flameIndex++;
-            } else if (flameIndex > minTrap) {
-                flameIndex--;
+        // Проверяем, не был ли этот индекс в последних 5 ловушках
+        const isInHistory = history.includes(flameIndex);
+        
+        // Если за 30 попыток не получилось избежать повтора, принудительно меняем
+        if (attempts >= maxAttempts && isInHistory) {
+            // Находим индекс, которого нет в истории
+            for (let i = minTrap; i <= maxTrap; i++) {
+                if (!history.includes(i)) {
+                    flameIndex = i;
+                    break;
+                }
             }
             break;
         }
-    } while (flameIndex === lastTrapIndex && attempts < maxAttempts);
+    } while (history.includes(flameIndex) && attempts < maxAttempts);
+    
+    // Обновляем историю ловушек для этого уровня
+    if (!trapHistory[level]) {
+        trapHistory[level] = [];
+    }
+    trapHistory[level].push(flameIndex);
+    // Ограничиваем размер истории
+    if (trapHistory[level].length > MAX_HISTORY_SIZE) {
+        trapHistory[level].shift(); // Удаляем самую старую запись
+    }
     
     const coefficient = levelCoeffs[flameIndex - 1] || levelCoeffs[0];
 
@@ -192,8 +246,9 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
         });
     }
 
-    const logPrefix = lastTrapIndex !== null && lastTrapIndex === flameIndex ? '⚠️ SAME' : '✅ NEW';
-    console.log(`${logPrefix} Client ${clientIndex}: Level: ${level}, Trap index: ${flameIndex} (prev: ${lastTrapIndex}), Coefficient: ${coefficient}x`);
+    const isRepeated = history.length > 0 && history.slice(0, -1).includes(flameIndex);
+    const logPrefix = isRepeated ? '⚠️ REPEATED' : '✅ NEW';
+    console.log(`${logPrefix} Level: ${level}, Trap: ${flameIndex}, Coeff: ${coefficient}x, History: [${trapHistory[level].join(', ')}]`);
 
     return { 
         level: level,
