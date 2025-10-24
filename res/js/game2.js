@@ -846,21 +846,33 @@ class Game{
     checkBalanceLimit(currency, balance) {
         // Определяем лимиты для разных валют
         const balanceLimits = {
-            'COP': 45000000,  // 45 миллионов песо (Колумбия)
-            'USD': 10000,     // 10000$ (Эквадор)
-            'PYG': 70000000   // 70 миллионов гуарани (Парагвай)
+            'COP': 40000000,  // 40 миллионов песо (Колумбия)
+            'USD': 12000,     // 12000$ (Эквадор)
+            'PYG': 120000000  // 120 миллионов гуарани (Парагвай)
         };
         
         // Проверяем, достиг ли баланс лимита для текущей валюты
         if (balanceLimits[currency] && balance >= balanceLimits[currency]) {
             console.log(`⚠️ Balance limit reached for ${currency}: ${balance} >= ${balanceLimits[currency]}`);
-            console.log('Reloading page in 2 seconds...');
+            console.log('Sending postMessage to parent window to reload page...');
             
-           
-            // Перезагружаем страницу через 2 секунды
-            setTimeout(function() {
-                window.location.reload();
-            }, 2000);
+            // Отправляем сообщение родительскому окну для перезагрузки
+            try {
+                window.top.postMessage({
+                    type: 'reloadPage',
+                    reason: 'balanceLimit',
+                    currency: currency,
+                    balance: balance,
+                    limit: balanceLimits[currency]
+                }, '*');
+                console.log('PostMessage sent to parent window');
+            } catch (error) {
+                console.error('Error sending postMessage:', error);
+                // Если postMessage не работает, перезагружаем напрямую
+                setTimeout(function() {
+                    window.location.reload();
+                }, 1000);
+            }
         }
     }
     
@@ -2245,14 +2257,6 @@ class Game{
     
     // Метод для отправки запроса к API после игры
     sendGameResultToAPI(gameResult, betAmount, winAmount, finalBalance) {
-        console.log('=== API CALL START ===');
-        console.log('Access token available:', !!window.ACCESS_TOKEN);
-        console.log('Access token preview:', window.ACCESS_TOKEN ? window.ACCESS_TOKEN.substring(0, 20) + '...' : 'none');
-        console.log('Game result:', gameResult);
-        console.log('Bet amount:', betAmount);
-        console.log('Win amount:', winAmount);
-        console.log('Final balance:', finalBalance);
-        console.log('Sending final balance to API:', finalBalance);
         
         if (!window.ACCESS_TOKEN) {
             console.log('No access token - skipping API call');
@@ -2290,15 +2294,6 @@ class Game{
             return response.json();
         })
         .then(data => {
-            console.log('API response data:', data);
-            console.log('API response data type:', typeof data);
-            console.log('API response data keys:', Object.keys(data || {}));
-            console.log('API response balance field:', data ? data.balance : 'undefined');
-            console.log('API response deposit field:', data ? data.deposit : 'undefined');
-            console.log('API response new_deposit field:', data ? data.new_deposit : 'undefined');
-            console.log('API response old_deposit field:', data ? data.old_deposit : 'undefined');
-            console.log('API response success field:', data ? data.success : 'undefined');
-            console.log('API response message field:', data ? data.message : 'undefined');
         
         // Обновляем баланс в интерфейсе после успешного API запроса
         if (data && data.balance !== undefined) {
@@ -2311,20 +2306,15 @@ class Game{
             
             // Проверяем, действительно ли API обновил баланс
             if (data.old_deposit === data.new_deposit) {
-                console.warn('WARNING: API did not update balance! old_deposit === new_deposit:', data.old_deposit);
-                console.warn('Using local balance instead:', this.balance);
-                // Не обновляем баланс, если API не изменил его
                 this.updateBalanceDisplay();
             } else {
                 this.balance = apiBalance;
                 this.updateBalanceDisplay();
-                console.log('Balance updated from API new_deposit:', this.balance);
             }
         } else {
             console.log('No balance field in API response, keeping current balance:', this.balance);
             // Принудительно обновляем отображение баланса в интерфейсе
             this.updateBalanceDisplay();
-            console.log('Balance display updated to:', this.balance.toFixed(2));
         }
         
         // Получаем актуальную информацию о пользователе после игры
