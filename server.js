@@ -91,6 +91,27 @@ wss.on('connection', (ws) => {
                 activeGames.delete(ws);
                 clientData.gameActive = false;
                 console.log(`Game ended for client. Active games: ${activeGames.size}`);
+                
+                // После окончания игры отправляем актуальные ловушки
+                const level = clientData.level;
+                const trapData = lastTrapsByLevel[level];
+                if (trapData) {
+                    ws.send(JSON.stringify({ 
+                        type: 'traps', 
+                        traps: trapData.traps, 
+                        level: trapData.level || level,
+                        coefficient: trapData.coefficient,
+                        trapIndex: trapData.trapIndex,
+                        sectors: trapData.sectors,
+                        seconds: getSecondsToNextBroadcast()
+                    }));
+                    ws.send(JSON.stringify({ 
+                        type: 'traps_all_levels', 
+                        traps: lastTrapsByLevel, 
+                        seconds: getSecondsToNextBroadcast() 
+                    }));
+                    console.log(`✅ Sent updated traps to client after game end`);
+                }
             }
         } catch (error) {
             console.error('Error parsing message:', error);
@@ -107,15 +128,11 @@ wss.on('connection', (ws) => {
     ws.on('error', (error) => console.error('WebSocket error:', error));
 });
 
-// Генерация ловушек каждые 30 секунд (если нет активных игр)
+// Генерация ловушек каждые 30 секунд
 setInterval(() => {
     if (clients.size > 0) {
-        if (activeGames.size > 0) {
-            console.log(`Skipping broadcast - ${activeGames.size} active games in progress`);
-            return;
-        }
-    lastBroadcastTime = Date.now();
-    console.log('--- Broadcasting traps for ALL LEVELS to', clients.size, 'clients ---');
+        lastBroadcastTime = Date.now();
+        console.log('--- Broadcasting traps for ALL LEVELS to', clients.size, 'clients (active games:', activeGames.size, ') ---');
         const broadcastSeed = Date.now();
         const allLevels = ['easy', 'medium', 'hard', 'hardcore'];
         const trapsByLevel = {};
@@ -132,6 +149,12 @@ setInterval(() => {
 
         clients.forEach((clientData, ws) => {
             if (ws.readyState === WebSocket.OPEN) {
+                // Если игра активна, пропускаем отправку обновления этому клиенту
+                if (clientData.gameActive) {
+                    console.log(`⏸️  Skipping update for active game client`);
+                    return;
+                }
+                
                 const clientLevelData = trapsByLevel[clientData.level];
                 ws.send(JSON.stringify({ 
                     type: 'traps', 
