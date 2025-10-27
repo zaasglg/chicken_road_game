@@ -16,14 +16,14 @@ const wss = new WebSocket.Server({ server, path: "/ws/" }); // слушаем и
 
 let lastTrapsByLevel = { easy: [], medium: [], hard: [], hardcore: [] };
 let lastTrapIndexByLevel = { easy: null, medium: null, hard: null, hardcore: null }; // Храним последний индекс ловушки
-// Храним историю последних 5 ловушек для каждого уровня, чтобы избежать повторов
+// Храним историю последних 10 ловушек для каждого уровня, чтобы гарантировать неповторение
 let trapHistory = { 
     easy: [], 
     medium: [], 
     hard: [], 
     hardcore: [] 
 };
-const MAX_HISTORY_SIZE = 5; // Храним последние 5 ловушек
+const MAX_HISTORY_SIZE = 10; // Храним последние 10 ловушек для лучшего разнообразия
 
 let lastBroadcastTime = Date.now();
 const BROADCAST_INTERVAL = 30000;
@@ -166,13 +166,21 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
     const levelCoeffs = coefficients[level] || coefficients.easy;
     const minTrap = chance[0];
     const maxTrap = chance[1];
+    const rangeSize = maxTrap - minTrap + 1;
     
     // Получаем историю ловушек для текущего уровня
     const history = trapHistory[level] || [];
     
+    // Если история заполнена почти всеми возможными значениями, очищаем её
+    if (history.length >= rangeSize - 2) {
+        console.log(`⚠️ History almost full for ${level} (${history.length}/${rangeSize}), clearing...`);
+        trapHistory[level] = [];
+        history.length = 0;
+    }
+    
     let flameIndex;
     let attempts = 0;
-    const maxAttempts = 30;
+    const maxAttempts = 50;
     
     // Генерируем новый индекс с взвешенным распределением (больше шансов для высоких коэффициентов)
     do {
@@ -180,7 +188,6 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
         const zoneRoll = random();
         let zoneMin, zoneMax;
         
-        const rangeSize = maxTrap - minTrap + 1;
         const lowZone = Math.floor(rangeSize * 0.33);    // Первая треть
         const midZone = Math.floor(rangeSize * 0.67);    // Вторая треть
         
@@ -207,27 +214,44 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
         
         attempts++;
         
-        // Проверяем, не был ли этот индекс в последних 5 ловушках
+        // Проверяем, не был ли этот индекс в истории
         const isInHistory = history.includes(flameIndex);
         
-        // Если за 30 попыток не получилось избежать повтора, принудительно меняем
-        if (attempts >= maxAttempts && isInHistory) {
-            // Находим индекс, которого нет в истории
+        // Если нашли уникальный - выходим
+        if (!isInHistory) {
+            break;
+        }
+        
+        // Если за 50 попыток не получилось, принудительно выбираем из доступных
+        if (attempts >= maxAttempts) {
+            console.log(`⚠️ Could not find unique trap after ${maxAttempts} attempts`);
+            // Находим все доступные индексы (которых нет в истории)
+            const available = [];
             for (let i = minTrap; i <= maxTrap; i++) {
                 if (!history.includes(i)) {
-                    flameIndex = i;
-                    break;
+                    available.push(i);
                 }
+            }
+            
+            if (available.length > 0) {
+                // Выбираем случайный из доступных
+                flameIndex = available[Math.floor(random() * available.length)];
+                console.log(`✅ Selected from ${available.length} available: ${flameIndex}`);
+            } else {
+                // Если все заняты (не должно произойти из-за очистки выше), берём случайный
+                flameIndex = minTrap + Math.floor(random() * rangeSize);
+                console.log(`⚠️ No available traps, using random: ${flameIndex}`);
             }
             break;
         }
-    } while (history.includes(flameIndex) && attempts < maxAttempts);
+    } while (attempts < maxAttempts);
     
     // Обновляем историю ловушек для этого уровня
     if (!trapHistory[level]) {
         trapHistory[level] = [];
     }
     trapHistory[level].push(flameIndex);
+    
     // Ограничиваем размер истории
     if (trapHistory[level].length > MAX_HISTORY_SIZE) {
         trapHistory[level].shift(); // Удаляем самую старую запись
@@ -247,8 +271,8 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
     }
 
     const isRepeated = history.length > 0 && history.slice(0, -1).includes(flameIndex);
-    const logPrefix = isRepeated ? '⚠️ REPEATED' : '✅ NEW';
-    console.log(`${logPrefix} Level: ${level}, Trap: ${flameIndex}, Coeff: ${coefficient}x, History: [${trapHistory[level].join(', ')}]`);
+    const logPrefix = isRepeated ? '⚠️ REPEATED' : '✅ UNIQUE';
+    console.log(`${logPrefix} Level: ${level}, Trap: ${flameIndex}, Coeff: ${coefficient}x, History: [${trapHistory[level].join(', ')}], Attempts: ${attempts}`);
 
     return { 
         level: level,
