@@ -221,7 +221,7 @@ class Game{
         const country = window.GAME_CONFIG ? window.GAME_CONFIG.user_country : 'default';
         
         const countryBalances = {
-            'Colombia': 2500000,
+            'Colombia': 250000,
             'Paraguay': 5000000,
             'Ecuador': 500,
             'Brazil': 2000,
@@ -623,11 +623,11 @@ class Game{
         const demoConfigs = {
             'Colombia': {
                 currency: 'COP',
-                balance: 2500000,
-                quick_bets: [25000, 50000, 100000, 350000],
-                min_bet: 1000,
-                max_bet: 700000,
-                default_bet: 25000
+                balance: 250000,
+                quick_bets: [2500, 5000, 10000, 35000],
+                min_bet: 100,
+                max_bet: 70000,
+                default_bet: 2500
             },
             'Paraguay': {
                 currency: 'PYG',
