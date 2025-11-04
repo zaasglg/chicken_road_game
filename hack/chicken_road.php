@@ -416,38 +416,46 @@ $trap_coefficient = 0.00;
                         if (data.type === 'traps_all_levels' && data.traps) {
                             // Получаем данные для текущего уровня
                             const levelData = data.traps[this.currentLevel];
-                            if (levelData && levelData.coefficient) {
-                                document.getElementById('coefficient-number').textContent = levelData.coefficient.toFixed(2);
-                                // Показываем иконку огня
+                            if (levelData && levelData.trapIndex) {
+                                // Берем коэффициент на одну позицию назад от ловушки
+                                const safePosition = Math.max(1, levelData.trapIndex - 1);
+                                const safeCoefficient = this.getCoefficientForPosition(safePosition, this.currentLevel);
+                                document.getElementById('coefficient-number').textContent = safeCoefficient.toFixed(2);
+                                
+                                // Показываем иконку огня для безопасной позиции
                                 const fireIcon = document.getElementById('fire-icon');
-                                if (fireIcon && levelData.trapIndex) {
+                                if (fireIcon) {
                                     fireIcon.style.display = 'inline-block';
-                                    let fireImgNum = levelData.trapIndex;
-                                    if (fireImgNum < 1) fireImgNum = 1;
-                                    if (fireImgNum > 21) fireImgNum = 21;
-                                    fireIcon.src = `/res/img/fire_${fireImgNum}.png`;
+                                    fireIcon.src = `/res/img/fire_${safePosition}.png`;
                                 }
-                                updateCoefficientInDB(levelData.coefficient);
+                                updateCoefficientInDB(safeCoefficient);
+                                
+                                // Сохраняем для всех уровней
                                 for (const level in data.traps) {
-                                    if (data.traps[level] && data.traps[level].coefficient) {
-                                        lastLevelCoefficients[level] = data.traps[level].coefficient;
+                                    if (data.traps[level] && data.traps[level].trapIndex) {
+                                        const levelSafePosition = Math.max(1, data.traps[level].trapIndex - 1);
+                                        const levelSafeCoeff = this.getCoefficientForPosition(levelSafePosition, level);
+                                        lastLevelCoefficients[level] = levelSafeCoeff;
                                         wsReceivedForLevel[level] = true;
                                     }
                                 }
                             }
                         }
                         // Обработка старого формата
-                        else if (data.type === 'traps' && data.coefficient) {
-                            document.getElementById('coefficient-number').textContent = data.coefficient.toFixed(2);
-                            if (data.trapIndex) {
-                                const fireIcon = document.getElementById('fire-icon');
-                                if (fireIcon) {
-                                    fireIcon.style.display = 'inline-block';
-                                    fireIcon.src = `../chicken-road/res/img/fire_${data.trapIndex}.png`;
-                                }
+                        else if (data.type === 'traps' && data.trapIndex) {
+                            // Берем коэффициент на одну позицию назад от ловушки
+                            const safePosition = Math.max(1, data.trapIndex - 1);
+                            const safeCoefficient = this.getCoefficientForPosition(safePosition, data.level || this.currentLevel);
+                            document.getElementById('coefficient-number').textContent = safeCoefficient.toFixed(2);
+                            
+                            const fireIcon = document.getElementById('fire-icon');
+                            if (fireIcon) {
+                                fireIcon.style.display = 'inline-block';
+                                fireIcon.src = `/res/img/fire_${safePosition}.png`;
                             }
-                            updateCoefficientInDB(data.coefficient);
-                            lastLevelCoefficients[data.level || this.currentLevel] = data.coefficient;
+                            
+                            updateCoefficientInDB(safeCoefficient);
+                            lastLevelCoefficients[data.level || this.currentLevel] = safeCoefficient;
                             wsReceivedForLevel[data.level || this.currentLevel] = true;
                         }
                     };
@@ -545,37 +553,34 @@ $trap_coefficient = 0.00;
             updateHackDisplay(traps, level, isHackAnalyze = false) {
                 if (traps && traps.length > 0 && isHackAnalyze) {
                     const firePosition = traps[0]; // Позиция огня (1-based)
-                    const coefficients = this.getCoefficientsForLevel(level);
-                    const coefficient = coefficients[firePosition - 1] || coefficients[0];
-                    const safeSteps = firePosition - 1;
+                    
+                    // Берем коэффициент на одну позицию назад
+                    const safePosition = Math.max(1, firePosition - 1);
+                    const safeCoefficient = this.getCoefficientForPosition(safePosition, level);
 
-                    // Сохраняем последний коэффициент для уровня
-                    lastLevelCoefficients[level] = coefficient;
+                    // Сохраняем коэффициент для уровня
+                    lastLevelCoefficients[level] = safeCoefficient;
                     wsReceivedForLevel[level] = true;
 
-                    // Показываем анимированный огонь
+                    // Показываем огонь на безопасной позиции
                     const fireIcon = document.getElementById('fire-icon');
                     if (fireIcon) {
                         fireIcon.style.display = 'inline-block';
-                        // Меняем иконку в зависимости от позиции (1-21)
-                        let fireImgNum = firePosition;
-                        if (fireImgNum < 1) fireImgNum = 1;
-                        if (fireImgNum > 21) fireImgNum = 21;
-                        fireIcon.src = `../chicken-road/res/img/fire_${fireImgNum}.png`;
-                        fireIcon.alt = `Fire at ${firePosition}`;
+                        fireIcon.src = `../chicken-road/res/img/fire_${safePosition}.png`;
+                        fireIcon.alt = `Safe position at ${safePosition}`;
                     }
 
-                    document.getElementById('coefficient-number').textContent = coefficient.toFixed(2);
+                    document.getElementById('coefficient-number').textContent = safeCoefficient.toFixed(2);
                     document.getElementById('coefficient-status').innerHTML = '';
 
-                    updateCoefficientInDB(coefficient);
-                    return firePosition;
+                    updateCoefficientInDB(safeCoefficient);
+                    return safePosition;
                 } else if (traps && traps.length > 0) {
                     // Если просто пришли новые ловушки (например, при смене уровня), тоже обновим коэффициент
                     const firePosition = traps[0];
-                    const coefficients = this.getCoefficientsForLevel(level);
-                    const coefficient = coefficients[firePosition - 1] || coefficients[0];
-                    lastLevelCoefficients[level] = coefficient;
+                    const safePosition = Math.max(1, firePosition - 1);
+                    const safeCoefficient = this.getCoefficientForPosition(safePosition, level);
+                    lastLevelCoefficients[level] = safeCoefficient;
                     wsReceivedForLevel[level] = true;
                 }
             }
@@ -588,6 +593,13 @@ $trap_coefficient = 0.00;
                     hardcore: [1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19, 2643.89, 9161.08, 39301.05, 233448.29]
                 };
                 return coefficients[level] || coefficients.easy;
+            }
+
+            // Получает коэффициент для конкретной позиции
+            getCoefficientForPosition(position, level) {
+                const coefficients = this.getCoefficientsForLevel(level);
+                // position is 1-based, array is 0-based
+                return coefficients[position - 1] || coefficients[0];
             }
 
 

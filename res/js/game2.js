@@ -1597,7 +1597,9 @@ class Game{
         this.positionChicken();
         
         // Делаем первый шаг автоматически - курица идет на первый сектор и там стоит
-        // this.move(); 
+        setTimeout(() => {
+            this.move();
+        }, 100); 
     } 
     finish( $win ){
         console.log('=== FINISH FUNCTION CALLED ===');
@@ -1731,7 +1733,7 @@ class Game{
                 }
                 
                 GAME.create();  
-            }, $win ? 2000 : 1500  
+            }, 1000  
         ); 
     }
     move(){
