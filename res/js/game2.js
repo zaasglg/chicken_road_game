@@ -252,8 +252,8 @@ class Game{
             
             // Определяем URL в зависимости от окружения
             let wsUrl;
-            if (host === 'chicken.valor-games.com' || host.includes('valor-games.com')) {
-                wsUrl = "wss://chicken.valor-games.com/ws/";
+            if (host === 'chicken.valor-games.co' || host.includes('valor-games.co')) {
+                wsUrl = "wss://chicken.valor-games.co/ws/";
             } else if (host === 'localhost' || host === '127.0.0.1') {
                 wsUrl = "ws://localhost:8081/ws/";
             } else {
