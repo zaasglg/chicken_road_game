@@ -1731,7 +1731,7 @@ class Game{
                 }
                 
                 GAME.create();  
-            }, $win ? 5000 : 3000  
+            }, $win ? 2000 : 1500  
         ); 
     }
     move(){
@@ -1895,7 +1895,8 @@ class Game{
                     </div>`; 
         $('#random_bet').html( $tmps ).css('height', '40px'); 
         setTimeout( function(){ $('#random_bet').html('').css('height', '0px'); }, 6000 );
-    } 
+    }
+ 
     selectValue(mainArray, chanceArray) {
         var randomChance = Math.random();
         var limit = randomChance <= 0.1 ? chanceArray[1] : chanceArray[0];
@@ -1970,7 +1971,12 @@ class Game{
         });
 
         if( Math.round( Math.random() * 100 ) > 99 ){ 
-            $('#stats span.online').html( LOCALIZATION.TEXT_LIVE_WINS_ONLINE + ': '+ Math.round( Math.random() * 10000 ));
+            // Плавное изменение онлайн счетчика без анимации
+            const currentOnline = parseInt($('#stats span.online').text().replace(/\D/g, '')) || 8768;
+            // Более реалистичные изменения: ±10-500 от текущего значения
+            const change = Math.round((Math.random() - 0.5) * 1000); // от -500 до +500
+            const targetOnline = Math.max(1000, Math.min(15000, currentOnline + change)); // ограничиваем диапазон
+            $('#stats span.online').html(LOCALIZATION.TEXT_LIVE_WINS_ONLINE + ': ' + targetOnline);
             GAME.random_bet(); 
         } 
     }
