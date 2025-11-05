@@ -296,6 +296,13 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
     const isRepeated = history.length > 0 && history.slice(0, -1).includes(flameIndex);
     const logPrefix = isRepeated ? '⚠️ REPEATED' : '✅ UNIQUE';
     console.log(`${logPrefix} Level: ${level}, Trap: ${flameIndex}, Coeff: ${coefficient}x, History: [${trapHistory[level].join(', ')}], Attempts: ${attempts}`);
+    
+    // Дополнительная проверка для больших коэффициентов
+    if (coefficient >= 100) {
+        console.log(`🔥 BIG COEFFICIENT: Trap at position ${flameIndex}, coefficient ${coefficient}x`);
+        console.log(`   Array index: ${flameIndex - 1}, Value from array: ${levelCoeffs[flameIndex - 1]}`);
+        console.log(`   Sector data:`, sectors.find(s => s.id === flameIndex));
+    }
 
     return { 
         level: level,
@@ -315,6 +322,10 @@ function seededRandom(seed) {
 }
 
 // Слушаем на всех интерфейсах
-server.listen(8081, '0.0.0.0', () => {
+// server.listen(8081, '0.0.0.0', () => {
+//     console.log("WebSocket server listening");
+// });
+
+server.listen(8081, () => {
     console.log("WebSocket server listening");
 });

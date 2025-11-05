@@ -1132,11 +1132,19 @@ class Game{
         
         // Используем только коэффициент из WebSocket
         if (this.websocketCoefficients && this.websocketCoefficients[step] !== undefined) {
-            return this.websocketCoefficients[step];
+            const coeff = this.websocketCoefficients[step];
+            
+            // Логируем большие коэффициенты для проверки
+            if (coeff >= 100) {
+                console.log(`🔥 Getting BIG coefficient: step ${step} → coeff ${coeff}`);
+            }
+            
+            return coeff;
         }
         
         // Если WebSocket коэффициента нет, возвращаем 0
         console.warn(`No WebSocket coefficient available for step ${step}`);
+        console.warn('Available coefficients:', this.websocketCoefficients);
         return 0;
     }
     
@@ -2621,12 +2629,31 @@ Game.prototype.updateSectorCoefficients = function(sectors) {
             // Сохраняем коэффициент из WebSocket
             // sector.position это индекс массива (0-based), используем его как есть
             this.websocketCoefficients[sector.position] = sector.coefficient;
+            
+            // Дополнительное логирование для больших коэффициентов
+            if (sector.coefficient >= 100) {
+                console.log(`🔥 BIG COEFF RECEIVED: Sector ${sector.position + 1} (position ${sector.position}): coeff ${sector.coefficient}, isTrap: ${sector.isTrap}`);
+            }
+            
             console.log(`Sector ${sector.position + 1}: coefficient ${sector.coefficient}, isTrap: ${sector.isTrap}`);
         });
         
         // Всегда используем WebSocket коэффициенты, так как сервер отправляет правильные для каждого уровня
         console.log('Using WebSocket coefficients for level', this.cur_lvl);
         console.log('WebSocket coefficients received:', Object.values(this.websocketCoefficients));
+        
+        // Проверяем совпадение с локальными коэффициентами
+        const localCoeffs = SETTINGS.cfs[this.cur_lvl] || SETTINGS.cfs.easy;
+        let mismatchFound = false;
+        for (let i = 0; i < Math.min(localCoeffs.length, sectors.length); i++) {
+            if (Math.abs(this.websocketCoefficients[i] - localCoeffs[i]) > 0.01) {
+                console.error(`❌ MISMATCH at position ${i}: WebSocket=${this.websocketCoefficients[i]}, Local=${localCoeffs[i]}`);
+                mismatchFound = true;
+            }
+        }
+        if (!mismatchFound) {
+            console.log('✅ All coefficients match between WebSocket and local');
+        }
         
         console.log('Final coefficients saved:', this.websocketCoefficients);
         console.log('Coefficients array:', Object.values(this.websocketCoefficients));
