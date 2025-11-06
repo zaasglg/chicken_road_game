@@ -360,12 +360,11 @@ $trap_coefficient = 0.00;
                         timerSpan.textContent = formatTimer(timerSeconds);
                     }
                 } else {
-                    // Когда таймер достиг 0, останавливаем и разрешаем новый запуск
-                    clearInterval(timerInterval);
-                    isTimerRunning = false;
-                    console.log('⏰ Timer reached 0, ready for restart');
+                    // Когда таймер достиг 0, НЕ останавливаем - продолжаем отсчёт
+                    console.log('⏰ Timer cycle completed, continuing...');
+                    timerSeconds = 15; // Сбрасываем на 15 для продолжения отсчёта
                     if (timerSpan) {
-                        timerSpan.textContent = '00';
+                        timerSpan.textContent = formatTimer(timerSeconds);
                     }
                 }
             }, 1000);
@@ -373,16 +372,13 @@ $trap_coefficient = 0.00;
 
         // Функция для принудительного перезапуска таймера (при получении новых данных)
         function forceRestartTimer(initialSeconds) {
-            console.log('🔄 Force restarting timer');
+            console.log('🔄 Force restarting timer to', initialSeconds, 'seconds');
             
-            // Останавливаем текущий таймер
-            if (timerInterval) {
-                clearInterval(timerInterval);
+            // Просто сбрасываем счётчик, не останавливая интервал
+            timerSeconds = initialSeconds;
+            if (timerSpan) {
+                timerSpan.textContent = formatTimer(timerSeconds);
             }
-            isTimerRunning = false;
-            
-            // Запускаем новый
-            startTimer(initialSeconds);
         }
 
         // Функция форматирования таймера (показываем только секунды)
@@ -420,6 +416,14 @@ $trap_coefficient = 0.00;
                             type: 'set_client_type',
                             isHackBot: true
                         }));
+
+                        // Сразу запрашиваем последние ловушки
+                        setTimeout(() => {
+                            this.ws.send(JSON.stringify({
+                                type: 'get_last_traps'
+                            }));
+                            console.log('📡 Requested last traps on connection');
+                        }, 100);
 
                         // Перезапускаем таймер при подключении
                         if (typeof startTimer === 'function') {
@@ -764,16 +768,6 @@ $trap_coefficient = 0.00;
 
             // Создаем WebSocket клиент
             hackWebSocket = new ChickenHackWebSocket();
-
-            // После подключения WebSocket сразу запрашиваем последние коэффициенты
-            const wsInterval = setInterval(() => {
-                if (hackWebSocket && hackWebSocket.ws && hackWebSocket.ws.readyState === 1) {
-                    hackWebSocket.ws.send(JSON.stringify({
-                        type: 'get_last_traps'
-                    }));
-                    clearInterval(wsInterval);
-                }
-            }, 100);
 
             // Инициализируем таймер
             timerSpan = document.getElementById('timer-seconds');
