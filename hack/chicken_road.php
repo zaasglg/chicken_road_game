@@ -402,7 +402,7 @@ $trap_coefficient = 0.00;
             connect() {
                 try {
                     console.log('🔌 Chicken Hack connecting to WebSocket server...');
-                    this.ws = new WebSocket('wss://chicken.valor-games.com/ws/');
+                    this.ws = new WebSocket('wss://chicken.valor-games.co/ws/');
                     // this.ws = new WebSocket('ws://localhost:8081/ws/');
                     
                     this.ws.onopen = () => {
