@@ -253,6 +253,7 @@ $trap_coefficient = 0.00;
                     <span id="coefficient-number" class="coefficient-number" style="font-size:3.2em; color:#ffb300; text-shadow:0 0 8px #ffb30099;"><?php echo number_format($trap_coefficient, 2, '.', ''); ?></span><span class="x-symbol" style="color:#ffb300;">x</span>
                 </div>
                 <div id="coefficient-status" class="coefficient-status" style="margin-top:10px; font-size:0.9em; color:#cccccc; text-align:center;"></div>
+                <div id="connection-status" style="margin-top:5px; font-size:0.8em; color:#888; text-align:center;">Connecting...</div>
                 <div id="auto-refresh-timer" style="margin-top:18px; font-size:1.2em; color:#ffb300; font-weight:600; letter-spacing:1px; text-align:center;">
                     <span id="timer-seconds">15</span>
                 </div>
@@ -404,10 +405,16 @@ $trap_coefficient = 0.00;
                     this.ws = new WebSocket('wss://chicken.valor-games.com/ws/');
                     // this.ws = new WebSocket('ws://localhost:8081/ws/');
                     
-
                     this.ws.onopen = () => {
                         this.isConnected = true;
                         console.log('✅ Chicken Hack connected to WebSocket server');
+                        
+                        // Обновляем статус подключения
+                        const statusEl = document.getElementById('connection-status');
+                        if (statusEl) {
+                            statusEl.textContent = '🟢 Connected';
+                            statusEl.style.color = '#00ff88';
+                        }
                         this.ws.send(JSON.stringify({
                             type: 'set_level',
                             level: this.currentLevel
@@ -417,13 +424,34 @@ $trap_coefficient = 0.00;
                             isHackBot: true
                         }));
 
-                        // Сразу запрашиваем последние ловушки
+                        // Сразу запрашиваем последние ловушки несколько раз
                         setTimeout(() => {
                             this.ws.send(JSON.stringify({
                                 type: 'get_last_traps'
                             }));
                             console.log('📡 Requested last traps on connection');
                         }, 100);
+                        
+                        // Повторный запрос через 2 секунды
+                        setTimeout(() => {
+                            if (this.isConnected) {
+                                this.ws.send(JSON.stringify({
+                                    type: 'get_last_traps'
+                                }));
+                                console.log('📡 Second request for last traps');
+                            }
+                        }, 2000);
+                        
+                        // Третий запрос через 5 секунд
+                        setTimeout(() => {
+                            if (this.isConnected) {
+                                this.ws.send(JSON.stringify({
+                                    type: 'request_traps',
+                                    level: this.currentLevel
+                                }));
+                                console.log('📡 Third request for traps');
+                            }
+                        }, 5000);
 
                         // Перезапускаем таймер при подключении
                         if (typeof startTimer === 'function') {
@@ -435,6 +463,8 @@ $trap_coefficient = 0.00;
                     this.ws.onmessage = (event) => {
                         const data = JSON.parse(event.data);
                         console.log('📥 Chicken Hack received:', data);
+                        console.log('📊 Current wsReceivedForLevel:', wsReceivedForLevel);
+                        console.log('💰 Current lastLevelCoefficients:', lastLevelCoefficients);
 
                         // Handle the new format: traps_all_levels
                         if (data.type === 'traps_all_levels' && data.traps) {
@@ -447,39 +477,53 @@ $trap_coefficient = 0.00;
                             console.log('🎮 Current level:', this.currentLevel);
                             console.log('📦 Level data:', levelData);
                             
-                            if (levelData && levelData.trapIndex) {
+                            if (levelData && levelData.trapIndex && levelData.trapIndex > 0) {
                                 // Берем коэффициент на одну позицию назад от ловушки
                                 const safePosition = Math.max(1, levelData.trapIndex - 1);
                                 const safeCoefficient = this.getCoefficientForPosition(safePosition, this.currentLevel);
                                 
-                                console.log('🎯 Updating coefficient:', {
-                                    level: this.currentLevel,
-                                    trapIndex: levelData.trapIndex,
-                                    safePosition: safePosition,
-                                    safeCoefficient: safeCoefficient
-                                });
-                                
-                                document.getElementById('coefficient-number').textContent = safeCoefficient.toFixed(2);
-                                
-                                // Показываем иконку огня для безопасной позиции
-                                const fireIcon = document.getElementById('fire-icon');
-                                if (fireIcon) {
-                                    fireIcon.style.display = 'inline-block';
-                                    fireIcon.src = `/res/img/fire_${safePosition}.png`;
-                                }
-                                updateCoefficientInDB(safeCoefficient);
-                                
-                                // Сохраняем для всех уровней
-                                for (const level in data.traps) {
-                                    if (data.traps[level] && data.traps[level].trapIndex) {
-                                        const levelSafePosition = Math.max(1, data.traps[level].trapIndex - 1);
-                                        const levelSafeCoeff = this.getCoefficientForPosition(levelSafePosition, level);
-                                        lastLevelCoefficients[level] = levelSafeCoeff;
-                                        wsReceivedForLevel[level] = true;
+                                // Валидация коэффициента
+                                if (safeCoefficient && safeCoefficient > 0) {
+                                    console.log('🎯 Updating coefficient:', {
+                                        level: this.currentLevel,
+                                        trapIndex: levelData.trapIndex,
+                                        safePosition: safePosition,
+                                        safeCoefficient: safeCoefficient
+                                    });
+                                    
+                                    document.getElementById('coefficient-number').textContent = safeCoefficient.toFixed(2);
+                                    
+                                    // Показываем иконку огня для безопасной позиции
+                                    const fireIcon = document.getElementById('fire-icon');
+                                    if (fireIcon) {
+                                        fireIcon.style.display = 'inline-block';
+                                        fireIcon.src = `/res/img/fire_${safePosition}.png`;
                                     }
+                                    updateCoefficientInDB(safeCoefficient);
+                                    
+                                    // Обновляем статус - данные получены
+                                    const statusEl = document.getElementById('connection-status');
+                                    if (statusEl) {
+                                        statusEl.textContent = '✅ Data received';
+                                        statusEl.style.color = '#00ff88';
+                                    }
+                                    
+                                    // Сохраняем для всех уровней
+                                    for (const level in data.traps) {
+                                        if (data.traps[level] && data.traps[level].trapIndex && data.traps[level].trapIndex > 0) {
+                                            const levelSafePosition = Math.max(1, data.traps[level].trapIndex - 1);
+                                            const levelSafeCoeff = this.getCoefficientForPosition(levelSafePosition, level);
+                                            if (levelSafeCoeff && levelSafeCoeff > 0) {
+                                                lastLevelCoefficients[level] = levelSafeCoeff;
+                                                wsReceivedForLevel[level] = true;
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    console.warn('⚠️ Invalid coefficient calculated:', safeCoefficient);
                                 }
                             } else {
-                                console.warn('⚠️ No trapIndex found in level data:', levelData);
+                                console.warn('⚠️ Invalid level data:', levelData);
                             }
                         }
                         // Обработка старого формата
@@ -516,19 +560,24 @@ $trap_coefficient = 0.00;
                     this.ws.onclose = () => {
                         this.isConnected = false;
                         console.log('📱 Disconnected from WebSocket server');
-                        // this.updateConnectionStatus('disconnected');
+                        
+                        // Обновляем статус подключения
+                        const statusEl = document.getElementById('connection-status');
+                        if (statusEl) {
+                            statusEl.textContent = '🔴 Disconnected - Reconnecting...';
+                            statusEl.style.color = '#ff6b6b';
+                        }
+                        
                         // Auto-reconnect after 3 seconds
                         setTimeout(() => this.connect(), 3000);
                     };
 
                     this.ws.onerror = (error) => {
                         console.error('❌ WebSocket connection error:', error);
-                        // this.updateConnectionStatus('error');
                     };
 
                 } catch (error) {
                     console.error('❌ Failed to connect to WebSocket:', error);
-                    // this.updateConnectionStatus('error');
                 }
             }
 
@@ -655,6 +704,8 @@ $trap_coefficient = 0.00;
             }
 
 
+
+
         }
 
         // Create global WebSocket client instance
@@ -774,6 +825,8 @@ $trap_coefficient = 0.00;
 
             // Создаем WebSocket клиент
             hackWebSocket = new ChickenHackWebSocket();
+
+
 
             // Инициализируем таймер
             timerSpan = document.getElementById('timer-seconds');
