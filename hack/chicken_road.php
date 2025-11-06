@@ -407,16 +407,9 @@ $trap_coefficient = 0.00;
                         const data = JSON.parse(event.data);
                         console.log('📥 Chicken Hack received:', data);
 
-                        // Если сервер прислал таймер (timer или seconds) — перезапускаем таймер
-                        let newTimer = null;
-                        if (typeof data.timer === 'number') newTimer = data.timer;
-                        if (typeof data.seconds === 'number') newTimer = data.seconds;
-                        if (newTimer !== null && newTimer > 0) {
-                            console.log('⏱️ Timer reset to:', newTimer);
-                            startTimer(newTimer);
-                        } else if (data.type === 'traps' || data.type === 'traps_all_levels') {
-                            // Если таймер не пришел от сервера, используем дефолтное значение 15
-                            console.log('⏱️ No timer from server, using default 15 seconds');
+                        // При получении новых ловушек - перезапускаем таймер на 15 секунд
+                        if (data.type === 'traps' || data.type === 'traps_all_levels') {
+                            console.log('⏱️ New traps received, restarting timer to 15 seconds');
                             startTimer(15);
                         }
 
