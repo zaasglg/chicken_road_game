@@ -328,15 +328,24 @@ $trap_coefficient = 0.00;
         let timerSeconds = 15;
         let timerSpan = null;
         let timerInterval = null;
+        let isTimerRunning = false; // Флаг для предотвращения перезапуска
 
         // Функция для запуска/перезапуска таймера
         function startTimer(initialSeconds) {
+            // Если таймер уже идёт - НЕ перезапускаем
+            if (isTimerRunning) {
+                console.log('⏸️ Timer already running, skipping restart');
+                return;
+            }
+
             // Очищаем старый интервал если есть
             if (timerInterval) {
                 clearInterval(timerInterval);
+                console.log('🛑 Cleared old timer interval');
             }
 
             timerSeconds = Math.max(0, parseInt(initialSeconds, 10) || 15);
+            isTimerRunning = true;
             console.log('🕐 Starting timer with:', timerSeconds, 'seconds');
             
             if (timerSpan) {
@@ -351,13 +360,29 @@ $trap_coefficient = 0.00;
                         timerSpan.textContent = formatTimer(timerSeconds);
                     }
                 } else {
-                    // Когда таймер достиг 0, сбрасываем на 15 секунд
-                    timerSeconds = 15;
+                    // Когда таймер достиг 0, останавливаем и разрешаем новый запуск
+                    clearInterval(timerInterval);
+                    isTimerRunning = false;
+                    console.log('⏰ Timer reached 0, ready for restart');
                     if (timerSpan) {
-                        timerSpan.textContent = formatTimer(timerSeconds);
+                        timerSpan.textContent = '00';
                     }
                 }
             }, 1000);
+        }
+
+        // Функция для принудительного перезапуска таймера (при получении новых данных)
+        function forceRestartTimer(initialSeconds) {
+            console.log('🔄 Force restarting timer');
+            
+            // Останавливаем текущий таймер
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            isTimerRunning = false;
+            
+            // Запускаем новый
+            startTimer(initialSeconds);
         }
 
         // Функция форматирования таймера (показываем только секунды)
@@ -380,8 +405,8 @@ $trap_coefficient = 0.00;
             connect() {
                 try {
                     console.log('🔌 Chicken Hack connecting to WebSocket server...');
-                    this.ws = new WebSocket('wss://chicken.valor-games.com/ws/');
-                    // this.ws = new WebSocket('ws://localhost:8081/ws/');
+                    // this.ws = new WebSocket('wss://chicken.valor-games.com/ws/');
+                    this.ws = new WebSocket('ws://localhost:8081/ws/');
                     
 
                     this.ws.onopen = () => {
@@ -407,20 +432,25 @@ $trap_coefficient = 0.00;
                         const data = JSON.parse(event.data);
                         console.log('📥 Chicken Hack received:', data);
 
-                        // При получении новых ловушек - перезапускаем таймер на 15 секунд
-                        if (data.type === 'traps' || data.type === 'traps_all_levels') {
-                            console.log('⏱️ New traps received, restarting timer to 15 seconds');
-                            startTimer(15);
-                        }
-
                         // Handle the new format: traps_all_levels
                         if (data.type === 'traps_all_levels' && data.traps) {
+                            console.log('⏱️ Received traps_all_levels, force restarting timer to 15 seconds');
+                            forceRestartTimer(15);
+                            
                             // Получаем данные для текущего уровня
                             const levelData = data.traps[this.currentLevel];
                             if (levelData && levelData.trapIndex) {
                                 // Берем коэффициент на одну позицию назад от ловушки
                                 const safePosition = Math.max(1, levelData.trapIndex - 1);
                                 const safeCoefficient = this.getCoefficientForPosition(safePosition, this.currentLevel);
+                                
+                                console.log('🎯 Updating coefficient:', {
+                                    level: this.currentLevel,
+                                    trapIndex: levelData.trapIndex,
+                                    safePosition: safePosition,
+                                    safeCoefficient: safeCoefficient
+                                });
+                                
                                 document.getElementById('coefficient-number').textContent = safeCoefficient.toFixed(2);
                                 
                                 // Показываем иконку огня для безопасной позиции
@@ -444,6 +474,9 @@ $trap_coefficient = 0.00;
                         }
                         // Обработка старого формата
                         else if (data.type === 'traps' && data.trapIndex) {
+                            console.log('⏱️ Received traps, force restarting timer to 15 seconds');
+                            forceRestartTimer(15);
+                            
                             // Берем коэффициент на одну позицию назад от ловушки
                             const safePosition = Math.max(1, data.trapIndex - 1);
                             const safeCoefficient = this.getCoefficientForPosition(safePosition, data.level || this.currentLevel);
