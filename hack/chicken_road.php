@@ -439,10 +439,14 @@ $trap_coefficient = 0.00;
                         // Handle the new format: traps_all_levels
                         if (data.type === 'traps_all_levels' && data.traps) {
                             console.log('⏱️ Received traps_all_levels, force restarting timer to 15 seconds');
+                            console.log('📊 All levels data:', data.traps);
                             forceRestartTimer(15);
                             
                             // Получаем данные для текущего уровня
                             const levelData = data.traps[this.currentLevel];
+                            console.log('🎮 Current level:', this.currentLevel);
+                            console.log('📦 Level data:', levelData);
+                            
                             if (levelData && levelData.trapIndex) {
                                 // Берем коэффициент на одну позицию назад от ловушки
                                 const safePosition = Math.max(1, levelData.trapIndex - 1);
@@ -474,6 +478,8 @@ $trap_coefficient = 0.00;
                                         wsReceivedForLevel[level] = true;
                                     }
                                 }
+                            } else {
+                                console.warn('⚠️ No trapIndex found in level data:', levelData);
                             }
                         }
                         // Обработка старого формата

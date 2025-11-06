@@ -78,7 +78,30 @@ wss.on('connection', (ws) => {
                     seconds: getSecondsToNextBroadcast()
                 }));
             } else if (data.type === 'get_last_traps') {
+                // Проверяем, есть ли уже сгенерированные ловушки
+                const allLevels = ['easy', 'medium', 'hard', 'hardcore'];
+                let needsGeneration = false;
+                
+                allLevels.forEach(level => {
+                    if (!lastTrapsByLevel[level] || !lastTrapsByLevel[level].trapIndex) {
+                        needsGeneration = true;
+                    }
+                });
+                
+                // Если ловушек нет, генерируем их
+                if (needsGeneration) {
+                    console.log('🎲 Generating initial traps for all levels');
+                    const broadcastSeed = Date.now();
+                    allLevels.forEach(level => {
+                        const lastIndex = lastTrapIndexByLevel[level];
+                        const trapData = generateTraps(level, 0, broadcastSeed, lastIndex);
+                        lastTrapsByLevel[level] = trapData;
+                        lastTrapIndexByLevel[level] = trapData.trapIndex;
+                    });
+                }
+                
                 ws.send(JSON.stringify({ type: 'traps_all_levels', traps: lastTrapsByLevel, seconds: getSecondsToNextBroadcast() }));
+                console.log('📤 Sent last traps to client:', Object.keys(lastTrapsByLevel).map(k => `${k}:${lastTrapsByLevel[k].trapIndex}`).join(', '));
             } else if (data.type === 'end_game') {
                 sessionTraps.forEach((session, ws) => {
                     sessionTraps.set(ws, {});
