@@ -26,7 +26,7 @@ let trapHistory = {
 const MAX_HISTORY_SIZE = 10; // Храним последние 10 ловушек для лучшего разнообразия
 
 let lastBroadcastTime = Date.now();
-const BROADCAST_INTERVAL = 30000;
+const BROADCAST_INTERVAL = 15000;
 
 function getSecondsToNextBroadcast() {
     const now = Date.now();
@@ -170,7 +170,7 @@ setInterval(() => {
         });
         console.log('--- End broadcast ---\n');
     }
-}, 30000);
+}, 15000);
 
 function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapIndex = null) {
     const chance = SETTINGS.chance[level];

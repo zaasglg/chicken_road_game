@@ -429,7 +429,7 @@ class Game{
     startWebSocketTrapPolling() {
         console.log('Starting WebSocket trap polling...');
         
-        // Сервер автоматически отправляет новые ловушки каждые 30 секунд
+        // Сервер автоматически отправляет новые ловушки каждые 15 секунд
         // если нет активных игр, поэтому клиенту не нужно их запрашивать
         console.log('Relying on server automatic broadcasts instead of polling');
         
@@ -440,7 +440,7 @@ class Game{
             } else {
                 console.log('WebSocket not connected');
             }
-        }, 30000); // 30 секунд
+        }, 15000); // 15 секунд
         
         // Также запрашиваем ловушки при смене уровня
         this.originalSetLevel = this.setLevel;

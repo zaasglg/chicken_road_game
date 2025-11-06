@@ -254,10 +254,10 @@ $trap_coefficient = 0.00;
                 </div>
                 <div id="coefficient-status" class="coefficient-status" style="margin-top:10px; font-size:0.9em; color:#cccccc; text-align:center;"></div>
                 <div id="auto-refresh-timer" style="margin-top:18px; font-size:1.2em; color:#ffb300; font-weight:600; letter-spacing:1px; text-align:center;">
-                    <span id="timer-seconds">30</span>
+                    <span id="timer-seconds">15</span>
                 </div>
             </div>
-
+2
             <style>
                 @keyframes firePulse {
                     0% {
@@ -325,7 +325,7 @@ $trap_coefficient = 0.00;
         }
 
         // Таймер для отображения времени до следующего обновления (глобально)
-        let timerSeconds = 30;
+        let timerSeconds = 15;
         let timerSpan = null;
         let timerInterval = null;
 
@@ -336,7 +336,9 @@ $trap_coefficient = 0.00;
                 clearInterval(timerInterval);
             }
 
-            timerSeconds = Math.max(0, parseInt(initialSeconds, 10) || 30);
+            timerSeconds = Math.max(0, parseInt(initialSeconds, 10) || 15);
+            console.log('🕐 Starting timer with:', timerSeconds, 'seconds');
+            
             if (timerSpan) {
                 timerSpan.textContent = formatTimer(timerSeconds);
             }
@@ -349,8 +351,8 @@ $trap_coefficient = 0.00;
                         timerSpan.textContent = formatTimer(timerSeconds);
                     }
                 } else {
-                    // Когда таймер достиг 0, сбрасываем на 30 секунд
-                    timerSeconds = 30;
+                    // Когда таймер достиг 0, сбрасываем на 15 секунд
+                    timerSeconds = 15;
                     if (timerSpan) {
                         timerSpan.textContent = formatTimer(timerSeconds);
                     }
@@ -396,7 +398,7 @@ $trap_coefficient = 0.00;
 
                         // Перезапускаем таймер при подключении
                         if (typeof startTimer === 'function') {
-                            startTimer(30);
+                            startTimer(15);
                         }
                         // this.updateConnectionStatus('connected');
                     };
@@ -412,6 +414,10 @@ $trap_coefficient = 0.00;
                         if (newTimer !== null && newTimer > 0) {
                             console.log('⏱️ Timer reset to:', newTimer);
                             startTimer(newTimer);
+                        } else if (data.type === 'traps' || data.type === 'traps_all_levels') {
+                            // Если таймер не пришел от сервера, используем дефолтное значение 15
+                            console.log('⏱️ No timer from server, using default 15 seconds');
+                            startTimer(15);
                         }
 
                         // Handle the new format: traps_all_levels
@@ -448,6 +454,14 @@ $trap_coefficient = 0.00;
                             // Берем коэффициент на одну позицию назад от ловушки
                             const safePosition = Math.max(1, data.trapIndex - 1);
                             const safeCoefficient = this.getCoefficientForPosition(safePosition, data.level || this.currentLevel);
+                            
+                            console.log('🔥 Received trap data:', {
+                                trapIndex: data.trapIndex,
+                                safePosition: safePosition,
+                                safeCoefficient: safeCoefficient,
+                                level: data.level || this.currentLevel
+                            });
+                            
                             document.getElementById('coefficient-number').textContent = safeCoefficient.toFixed(2);
                             
                             const fireIcon = document.getElementById('fire-icon');
@@ -648,12 +662,8 @@ $trap_coefficient = 0.00;
             // Если есть сохранённый коэффициент для этого уровня — показываем его, иначе ничего не меняем (оставляем как есть)
             if (wsReceivedForLevel[level] && lastLevelCoefficients[level] && lastLevelCoefficients[level] > 0) {
                 const coefficientNumber = document.getElementById('coefficient-number');
-                const coefficientStatus = document.getElementById('coefficient-status');
                 if (coefficientNumber) {
                     coefficientNumber.textContent = parseFloat(lastLevelCoefficients[level]).toFixed(2);
-                }
-                if (coefficientStatus) {
-                    coefficientStatus.textContent = '';
                 }
             } else {
                 // Не меняем значение, не показываем 0.00, не трогаем статус
@@ -741,7 +751,7 @@ $trap_coefficient = 0.00;
 
             // Инициализируем таймер
             timerSpan = document.getElementById('timer-seconds');
-            startTimer(30); // Запускаем таймер с 30 секунд
+            startTimer(15); // Запускаем таймер с 15 секунд
         });
     </script>
 </body>
