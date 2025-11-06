@@ -252,13 +252,11 @@ $trap_coefficient = 0.00;
 
                     <span id="coefficient-number" class="coefficient-number" style="font-size:3.2em; color:#ffb300; text-shadow:0 0 8px #ffb30099;"><?php echo number_format($trap_coefficient, 2, '.', ''); ?></span><span class="x-symbol" style="color:#ffb300;">x</span>
                 </div>
-                <div id="coefficient-status" class="coefficient-status" style="margin-top:10px; font-size:0.9em; color:#cccccc; text-align:center;"></div>
-                <div id="connection-status" style="margin-top:5px; font-size:0.8em; color:#888; text-align:center;">Connecting...</div>
                 <div id="auto-refresh-timer" style="margin-top:18px; font-size:1.2em; color:#ffb300; font-weight:600; letter-spacing:1px; text-align:center;">
                     <span id="timer-seconds">15</span>
                 </div>
             </div>
-2
+
             <style>
                 @keyframes firePulse {
                     0% {
