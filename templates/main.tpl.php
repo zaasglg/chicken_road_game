@@ -1,7 +1,46 @@
 
 <?php
-// Определяем страну пользователя из URL параметра
-$user_country = isset($_GET['country']) ? $_GET['country'] : 'default';
+// Определяем страну пользователя из разных источников
+$user_country = 'default';
+
+// 1. Сначала проверяем URL параметр
+if (isset($_GET['country']) && !empty($_GET['country'])) {
+    $user_country = $_GET['country'];
+    error_log("Country from URL: $user_country");
+}
+// 2. Если нет в URL, проверяем сессию
+elseif (isset($_SESSION['user_country']) && !empty($_SESSION['user_country'])) {
+    $user_country = $_SESSION['user_country'];
+    error_log("Country from session: $user_country");
+}
+// 3. Если есть access_token, пытаемся получить страну из API
+elseif (isset($_GET['access_token']) && !empty($_GET['access_token'])) {
+    $access_token = $_GET['access_token'];
+    
+    // Делаем запрос к API для получения информации о пользователе
+    $api_url = 'https://api.valor-games.co/api/user/info/';
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $api_url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $access_token,
+        'Content-Type: application/json'
+    ]);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+    
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    if ($http_code === 200 && $response) {
+        $user_data = json_decode($response, true);
+        if (isset($user_data['country']) && !empty($user_data['country'])) {
+            $user_country = $user_data['country'];
+            $_SESSION['user_country'] = $user_country; // Сохраняем в сессию
+            error_log("Country from API: $user_country");
+        }
+    }
+}
 
 // Получаем конфигурацию ставок для текущей страны
 $bet_config = getBetConfig($user_country);

@@ -1996,19 +1996,35 @@ class Game{
             $('#switch_sound').off().on('change', function(){
                 var $self=$(this); 
                 var $val = $self.is(':checked'); 
-                if( !$val ){ SETTINGS.volume.sound = 0; } 
-                else { SETTINGS.volume.music = 0.9; } 
+                if( !$val ){ 
+                    // Выключаем все звуки
+                    SETTINGS.volume.sound = 0;
+                    SOUNDS.button.volume(0);
+                    SOUNDS.win.volume(0);
+                    SOUNDS.lose.volume(0);
+                    SOUNDS.step.volume(0);
+                } 
+                else { 
+                    // Включаем все звуки
+                    SETTINGS.volume.sound = 0.9;
+                    SOUNDS.button.volume(0.9);
+                    SOUNDS.win.volume(0.9);
+                    SOUNDS.lose.volume(0.9);
+                    SOUNDS.step.volume(0.9);
+                } 
             });
             $('#switch_music').off().on('change', function(){
                 var $self=$(this); 
                 var $val = $self.is(':checked'); 
                 if( !$val ){
                     SOUNDS.music.stop(); 
-                    SETTINGS.volume.music = 0; 
+                    SETTINGS.volume.music = 0;
+                    SOUNDS.music.volume(0);
                 } 
                 else {
                     SOUNDS.music.play(); 
                     SETTINGS.volume.music = 0.2;
+                    SOUNDS.music.volume(0.2);
                 } 
                 
             });
@@ -2018,11 +2034,27 @@ class Game{
                 var $self=$(this); 
                 $self.toggleClass('off'); 
                 if( $self.hasClass('off') ){
+                    // Выключаем ВСЕ звуки
                     SOUNDS.music.stop(); 
-                    SETTINGS.volume.active = 0; 
+                    SETTINGS.volume.active = 0;
+                    SETTINGS.volume.sound = 0;
+                    SETTINGS.volume.music = 0;
+                    SOUNDS.button.volume(0);
+                    SOUNDS.win.volume(0);
+                    SOUNDS.lose.volume(0);
+                    SOUNDS.step.volume(0);
+                    SOUNDS.music.volume(0);
                 } 
                 else {
-                    SETTINGS.volume.active = 1; 
+                    // Включаем ВСЕ звуки
+                    SETTINGS.volume.active = 1;
+                    SETTINGS.volume.sound = 0.9;
+                    SETTINGS.volume.music = 0.2;
+                    SOUNDS.button.volume(0.9);
+                    SOUNDS.win.volume(0.9);
+                    SOUNDS.lose.volume(0.9);
+                    SOUNDS.step.volume(0.9);
+                    SOUNDS.music.volume(0.2);
                     SOUNDS.music.play(); 
                 }
                 // Сохраняем настройки
@@ -2461,20 +2493,29 @@ class Game{
                     // Обновляем валюту если есть country_info
                     if (data.country_info && data.country_info.currency) {
                         window.GAME_CONFIG.currency_symbol = data.country_info.currency;
+                        SETTINGS.currency = data.country_info.currency; // Обновляем SETTINGS.currency
                         console.log('Currency updated from API:', data.country_info.currency);
                         
                         // Обновляем отображение валюты в интерфейсе
                         $('[data-rel="menu-balance"]').attr('data-currency', data.country_info.currency);
                         
-                        // Обновляем SVG символы валюты
-                        $('svg use').attr('xlink:href', './res/img/currency.svg#' + data.country_info.currency);
+                        // Обновляем SVG символы валюты везде на странице
+                        $('svg use').each(function() {
+                            var href = $(this).attr('xlink:href');
+                            if (href && href.includes('currency.svg')) {
+                                $(this).attr('xlink:href', './res/img/currency.svg#' + data.country_info.currency);
+                            }
+                        });
                         console.log('Currency SVG updated to:', data.country_info.currency);
+                        console.log('SETTINGS.currency updated to:', SETTINGS.currency);
                     }
                     
                     // Обновляем настройки игры с новыми данными
                     this.updateSettingsFromConfig();
                     this.updateMinMaxButtons();
-                    this.updateQuickBets(data.country_info.currency);
+                    if (data.country_info && data.country_info.currency) {
+                        this.updateQuickBets(data.country_info.currency);
+                    }
                     
                     console.log('Game config updated from API:', window.GAME_CONFIG);
                 }

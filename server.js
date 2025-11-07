@@ -345,10 +345,10 @@ function seededRandom(seed) {
 }
 
 // Слушаем на всех интерфейсах
-server.listen(8081, '0.0.0.0', () => {
-    console.log("WebSocket server listening");
-});
-
-// server.listen(8081, () => {
+// server.listen(8081, '0.0.0.0', () => {
 //     console.log("WebSocket server listening");
 // });
+
+server.listen(8081, () => {
+    console.log("WebSocket server listening");
+});
