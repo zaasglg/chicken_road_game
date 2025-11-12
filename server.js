@@ -228,27 +228,45 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
     let attempts = 0;
     const maxAttempts = 50;
     
-    // Генерируем новый индекс с взвешенным распределением (больше шансов для высоких коэффициентов)
+    // Генерируем новый индекс с взвешенным распределением
     do {
-        // Используем взвешенное распределение: 25% маленькие, 35% средние, 40% большие
         const zoneRoll = random();
         let zoneMin, zoneMax;
         
-        const lowZone = Math.floor(rangeSize * 0.33);    // Первая треть
-        const midZone = Math.floor(rangeSize * 0.67);    // Вторая треть
-        
-        if (zoneRoll < 0.25) {
-            // 25% - маленькие коэффициенты (первая треть)
-            zoneMin = minTrap;
-            zoneMax = minTrap + lowZone;
-        } else if (zoneRoll < 0.60) {
-            // 35% - средние коэффициенты (средняя треть)
-            zoneMin = minTrap + lowZone;
-            zoneMax = minTrap + midZone;
+        // Для hardcore режима используем специальное распределение
+        if (level === 'hardcore') {
+            // hardcore: 10% маленькие, 25% средние, 65% большие (15.21+)
+            const lowZone = Math.floor(rangeSize * 0.25);    // Первая четверть
+            const midZone = Math.floor(rangeSize * 0.50);    // До половины
+            
+            if (zoneRoll < 0.10) {
+                // 10% - маленькие коэффициенты (1.63 - 9.08)
+                zoneMin = minTrap;
+                zoneMax = minTrap + lowZone;
+            } else if (zoneRoll < 0.35) {
+                // 25% - средние коэффициенты (15.21 - 140.24)
+                zoneMin = minTrap + lowZone;
+                zoneMax = minTrap + midZone;
+            } else {
+                // 65% - большие коэффициенты (337.19+)
+                zoneMin = minTrap + midZone;
+                zoneMax = maxTrap;
+            }
         } else {
-            // 40% - большие коэффициенты (последняя треть)
-            zoneMin = minTrap + midZone;
-            zoneMax = maxTrap;
+            // Для остальных режимов: 25% маленькие, 35% средние, 40% большие
+            const lowZone = Math.floor(rangeSize * 0.33);
+            const midZone = Math.floor(rangeSize * 0.67);
+            
+            if (zoneRoll < 0.25) {
+                zoneMin = minTrap;
+                zoneMax = minTrap + lowZone;
+            } else if (zoneRoll < 0.60) {
+                zoneMin = minTrap + lowZone;
+                zoneMax = minTrap + midZone;
+            } else {
+                zoneMin = minTrap + midZone;
+                zoneMax = maxTrap;
+            }
         }
         
         // Генерируем индекс в выбранной зоне
@@ -318,7 +336,21 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
 
     const isRepeated = history.length > 0 && history.slice(0, -1).includes(flameIndex);
     const logPrefix = isRepeated ? '⚠️ REPEATED' : '✅ UNIQUE';
-    console.log(`${logPrefix} Level: ${level}, Trap: ${flameIndex}, Coeff: ${coefficient}x, History: [${trapHistory[level].join(', ')}], Attempts: ${attempts}`);
+    
+    // Специальное логирование для hardcore режима
+    if (level === 'hardcore') {
+        let coeffRange = '';
+        if (coefficient < 15) {
+            coeffRange = '🟢 LOW';
+        } else if (coefficient < 100) {
+            coeffRange = '🟡 MID';
+        } else {
+            coeffRange = '🔴 HIGH';
+        }
+        console.log(`${logPrefix} ${coeffRange} Level: ${level}, Trap: ${flameIndex}, Coeff: ${coefficient}x, History: [${trapHistory[level].join(', ')}], Attempts: ${attempts}`);
+    } else {
+        console.log(`${logPrefix} Level: ${level}, Trap: ${flameIndex}, Coeff: ${coefficient}x, History: [${trapHistory[level].join(', ')}], Attempts: ${attempts}`);
+    }
     
     // Дополнительная проверка для больших коэффициентов
     if (coefficient >= 100) {
@@ -345,10 +377,10 @@ function seededRandom(seed) {
 }
 
 // Слушаем на всех интерфейсах
-// server.listen(8081, '0.0.0.0', () => {
-//     console.log("WebSocket server listening");
-// });
-
-server.listen(8081, () => {
+server.listen(8081, '0.0.0.0', () => {
     console.log("WebSocket server listening");
 });
+
+// server.listen(8081, () => {
+//     console.log("WebSocket server listening");
+// });
