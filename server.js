@@ -235,20 +235,20 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
         
         // Для hardcore режима используем специальное распределение
         if (level === 'hardcore') {
-            // hardcore: 10% маленькие, 25% средние, 65% большие (15.21+)
-            const lowZone = Math.floor(rangeSize * 0.25);    // Первая четверть
-            const midZone = Math.floor(rangeSize * 0.50);    // До половины
+            // hardcore: 5% маленькие, 15% средние, 80% большие (337.19+)
+            const lowZone = Math.floor(rangeSize * 0.20);    // Первые 20%
+            const midZone = Math.floor(rangeSize * 0.40);    // До 40%
             
-            if (zoneRoll < 0.10) {
-                // 10% - маленькие коэффициенты (1.63 - 9.08)
+            if (zoneRoll < 0.05) {
+                // 5% - маленькие коэффициенты (1.63 - 9.08)
                 zoneMin = minTrap;
                 zoneMax = minTrap + lowZone;
-            } else if (zoneRoll < 0.35) {
-                // 25% - средние коэффициенты (15.21 - 140.24)
+            } else if (zoneRoll < 0.20) {
+                // 15% - средние коэффициенты (15.21 - 140.24)
                 zoneMin = minTrap + lowZone;
                 zoneMax = minTrap + midZone;
             } else {
-                // 65% - большие коэффициенты (337.19+)
+                // 80% - большие коэффициенты (337.19+)
                 zoneMin = minTrap + midZone;
                 zoneMax = maxTrap;
             }
