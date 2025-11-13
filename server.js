@@ -235,6 +235,7 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
         
         // Для hardcore режима используем специальное распределение
         if (level === 'hardcore') {
+<<<<<<< HEAD
             // hardcore: 5% маленькие, 15% средние, 80% большие (337.19+)
             const lowZone = Math.floor(rangeSize * 0.20);    // Первые 20%
             const midZone = Math.floor(rangeSize * 0.40);    // До 40%
@@ -252,6 +253,17 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
                 zoneMin = minTrap + midZone;
                 zoneMax = maxTrap;
             }
+=======
+            // hardcore: ТОЛЬКО большие коэффициенты (15.21+)
+            // Позиция 5 = 15.21, это минимальный коэффициент для hardcore
+            const minBigCoeff = 5; // Позиция 5 в массиве = 15.21
+            
+            // Генерируем только от позиции 5 до максимума (позиция 6 = maxTrap)
+            zoneMin = minBigCoeff;
+            zoneMax = maxTrap;
+            
+            console.log(`🎯 Hardcore mode: generating trap between positions ${zoneMin}-${zoneMax} (coeffs 15.21+)`);
+>>>>>>> 31a851a (wefwef)
         } else {
             // Для остальных режимов: 25% маленькие, 35% средние, 40% большие
             const lowZone = Math.floor(rangeSize * 0.33);
@@ -340,14 +352,16 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
     // Специальное логирование для hardcore режима
     if (level === 'hardcore') {
         let coeffRange = '';
-        if (coefficient < 15) {
-            coeffRange = '🟢 LOW';
-        } else if (coefficient < 100) {
-            coeffRange = '🟡 MID';
+        if (coefficient < 100) {
+            coeffRange = '� MIWD (15-100)';
+        } else if (coefficient < 1000) {
+            coeffRange = '� HIGH; (100-1K)';
+        } else if (coefficient < 1000000) {
+            coeffRange = '� MEGA ;(1K-1M)';
         } else {
-            coeffRange = '🔴 HIGH';
+            coeffRange = '💎 ULTRA (1M+)';
         }
-        console.log(`${logPrefix} ${coeffRange} Level: ${level}, Trap: ${flameIndex}, Coeff: ${coefficient}x, History: [${trapHistory[level].join(', ')}], Attempts: ${attempts}`);
+        console.log(`${logPrefix} ${coeffRange} Level: ${level}, Trap: ${flameIndex}, Coeff: ${coefficient.toLocaleString()}x, History: [${trapHistory[level].join(', ')}], Attempts: ${attempts}`);
     } else {
         console.log(`${logPrefix} Level: ${level}, Trap: ${flameIndex}, Coeff: ${coefficient}x, History: [${trapHistory[level].join(', ')}], Attempts: ${attempts}`);
     }
