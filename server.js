@@ -214,12 +214,17 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
     const maxTrap = chance[1];
     const rangeSize = maxTrap - minTrap + 1;
     
+    // Для hardcore реальный диапазон - только 2 позиции (5 и 6)
+    const actualRangeSize = level === 'hardcore' ? 2 : rangeSize;
+    
     // Получаем историю ловушек для текущего уровня
     const history = trapHistory[level] || [];
     
     // Если история заполнена почти всеми возможными значениями, очищаем её
-    if (history.length >= rangeSize - 2) {
-        console.log(`⚠️ History almost full for ${level} (${history.length}/${rangeSize}), clearing...`);
+    // Для hardcore: если история >= 2, очищаем (т.к. всего 2 позиции)
+    const clearThreshold = level === 'hardcore' ? 2 : (rangeSize - 2);
+    if (history.length >= clearThreshold) {
+        console.log(`⚠️ History full for ${level} (${history.length}/${actualRangeSize} positions), clearing...`);
         trapHistory[level] = [];
         history.length = 0;
     }
@@ -285,9 +290,14 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
         // Если за 50 попыток не получилось, принудительно выбираем из доступных
         if (attempts >= maxAttempts) {
             console.log(`⚠️ Could not find unique trap after ${maxAttempts} attempts`);
+            
+            // Для hardcore используем только позиции 5-6
+            const searchMin = level === 'hardcore' ? 5 : minTrap;
+            const searchMax = level === 'hardcore' ? 6 : maxTrap;
+            
             // Находим все доступные индексы (которых нет в истории)
             const available = [];
-            for (let i = minTrap; i <= maxTrap; i++) {
+            for (let i = searchMin; i <= searchMax; i++) {
                 if (!history.includes(i)) {
                     available.push(i);
                 }
@@ -296,11 +306,13 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
             if (available.length > 0) {
                 // Выбираем случайный из доступных
                 flameIndex = available[Math.floor(random() * available.length)];
-                console.log(`✅ Selected from ${available.length} available: ${flameIndex}`);
+                console.log(`✅ Selected from ${available.length} available: ${flameIndex} (range: ${searchMin}-${searchMax})`);
             } else {
-                // Если все заняты (не должно произойти из-за очистки выше), берём случайный
-                flameIndex = minTrap + Math.floor(random() * rangeSize);
-                console.log(`⚠️ No available traps, using random: ${flameIndex}`);
+                // Если все заняты, очищаем историю и берём случайный из диапазона
+                console.log(`⚠️ No available traps in range ${searchMin}-${searchMax}, clearing history`);
+                trapHistory[level] = [];
+                flameIndex = searchMin + Math.floor(random() * (searchMax - searchMin + 1));
+                console.log(`✅ Using random after history clear: ${flameIndex}`);
             }
             break;
         }
