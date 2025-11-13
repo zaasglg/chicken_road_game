@@ -235,23 +235,13 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
         
         // Для hardcore режима используем специальное распределение
         if (level === 'hardcore') {
-            // hardcore: 5% маленькие, 15% средние, 80% большие (337.19+)
-            const lowZone = Math.floor(rangeSize * 0.20);    // Первые 20%
-            const midZone = Math.floor(rangeSize * 0.40);    // До 40%
+            // hardcore: ТОЛЬКО большие коэффициенты (15.21+)
+            // Позиция 5 = 15.21, позиция 6 = 30.12
+            // Генерируем ТОЛЬКО эти две позиции
+            zoneMin = 5;  // Минимум позиция 5 (коэфф 15.21)
+            zoneMax = 6;  // Максимум позиция 6 (коэфф 30.12)
             
-            if (zoneRoll < 0.05) {
-                // 5% - маленькие коэффициенты (1.63 - 9.08)
-                zoneMin = minTrap;
-                zoneMax = minTrap + lowZone;
-            } else if (zoneRoll < 0.20) {
-                // 15% - средние коэффициенты (15.21 - 140.24)
-                zoneMin = minTrap + lowZone;
-                zoneMax = minTrap + midZone;
-            } else {
-                // 80% - большие коэффициенты (337.19+)
-                zoneMin = minTrap + midZone;
-                zoneMax = maxTrap;
-            }
+            console.log(`🎯 Hardcore mode: generating trap between positions ${zoneMin}-${zoneMax} (coeffs 15.21-30.12)`);
         } else {
             // Для остальных режимов: 25% маленькие, 35% средние, 40% большие
             const lowZone = Math.floor(rangeSize * 0.33);
@@ -272,9 +262,15 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
         // Генерируем индекс в выбранной зоне
         flameIndex = zoneMin + Math.floor(random() * (zoneMax - zoneMin + 1));
         
-        // Ограничиваем диапазон
-        if (flameIndex < minTrap) flameIndex = minTrap;
-        if (flameIndex > maxTrap) flameIndex = maxTrap;
+        // Для hardcore принудительно ограничиваем диапазон 5-6
+        if (level === 'hardcore') {
+            if (flameIndex < 5) flameIndex = 5;
+            if (flameIndex > 6) flameIndex = 6;
+        } else {
+            // Ограничиваем диапазон для остальных режимов
+            if (flameIndex < minTrap) flameIndex = minTrap;
+            if (flameIndex > maxTrap) flameIndex = maxTrap;
+        }
         
         attempts++;
         
@@ -339,15 +335,21 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
     
     // Специальное логирование для hardcore режима
     if (level === 'hardcore') {
+        // ПРОВЕРКА: для hardcore должны быть только позиции 5 или 6
+        if (flameIndex < 5 || flameIndex > 6) {
+            console.error(`ERROR: Hardcore generated invalid position ${flameIndex}! Should be 5 or 6 only!`);
+            console.error(`Coefficient: ${coefficient}, minTrap: ${minTrap}, maxTrap: ${maxTrap}`);
+        }
+        
         let coeffRange = '';
         if (coefficient < 100) {
-            coeffRange = '� MIWD (15-100)';
+            coeffRange = 'MID (15-100)';
         } else if (coefficient < 1000) {
-            coeffRange = '� HIGH; (100-1K)';
+            coeffRange = 'HIGH (100-1K)';
         } else if (coefficient < 1000000) {
-            coeffRange = '� MEGA ;(1K-1M)';
+            coeffRange = 'MEGA (1K-1M)';
         } else {
-            coeffRange = '💎 ULTRA (1M+)';
+            coeffRange = 'ULTRA (1M+)';
         }
         console.log(`${logPrefix} ${coeffRange} Level: ${level}, Trap: ${flameIndex}, Coeff: ${coefficient.toLocaleString()}x, History: [${trapHistory[level].join(', ')}], Attempts: ${attempts}`);
     } else {
