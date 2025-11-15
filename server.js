@@ -6,7 +6,7 @@ const SETTINGS = {
         easy: [1, 20],      // Easy: ловушка на 1-20 секторе (легко)
         medium: [1, 12],    // Medium: ловушка на 1-12 секторе (сложнее)
         hard: [1, 8],       // Hard: ловушка на 1-8 секторе (очень сложно)
-        hardcore: [5, 10]   // Hardcore: ловушка на 5-10 секторе (коэффициенты 15.21 - 890.19)
+        hardcore: [1, 6]    // Hardcore: ловушка на 1-6 секторе (экстремально)
     }
 };
 
@@ -233,14 +233,25 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
         const zoneRoll = random();
         let zoneMin, zoneMax;
         
-        // Для hardcore режима используем весь диапазон (5-10)
+        // Для hardcore режима используем специальное распределение
         if (level === 'hardcore') {
-            // hardcore: ТОЛЬКО большие коэффициенты (15.21 - 890.19)
-            // Используем весь доступный диапазон
-            zoneMin = minTrap;  // 5 (коэфф 15.21)
-            zoneMax = maxTrap;  // 10 (коэфф 890.19)
+            // hardcore: 10% маленькие, 25% средние, 65% большие (15.21+)
+            const lowZone = Math.floor(rangeSize * 0.25);    // Первая четверть
+            const midZone = Math.floor(rangeSize * 0.50);    // До половины
             
-            console.log(`🎯 Hardcore mode: generating trap between positions ${zoneMin}-${zoneMax} (coeffs 15.21-890.19)`);
+            if (zoneRoll < 0.10) {
+                // 10% - маленькие коэффициенты (1.63 - 9.08)
+                zoneMin = minTrap;
+                zoneMax = minTrap + lowZone;
+            } else if (zoneRoll < 0.35) {
+                // 25% - средние коэффициенты (15.21 - 140.24)
+                zoneMin = minTrap + lowZone;
+                zoneMax = minTrap + midZone;
+            } else {
+                // 65% - большие коэффициенты (337.19+)
+                zoneMin = minTrap + midZone;
+                zoneMax = maxTrap;
+            }
         } else {
             // Для остальных режимов: 25% маленькие, 35% средние, 40% большие
             const lowZone = Math.floor(rangeSize * 0.33);
@@ -278,7 +289,6 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
         // Если за 50 попыток не получилось, принудительно выбираем из доступных
         if (attempts >= maxAttempts) {
             console.log(`⚠️ Could not find unique trap after ${maxAttempts} attempts`);
-            
             // Находим все доступные индексы (которых нет в истории)
             const available = [];
             for (let i = minTrap; i <= maxTrap; i++) {
@@ -290,13 +300,11 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
             if (available.length > 0) {
                 // Выбираем случайный из доступных
                 flameIndex = available[Math.floor(random() * available.length)];
-                console.log(`✅ Selected from ${available.length} available: ${flameIndex} (range: ${minTrap}-${maxTrap})`);
+                console.log(`✅ Selected from ${available.length} available: ${flameIndex}`);
             } else {
-                // Если все заняты, очищаем историю и берём случайный из диапазона
-                console.log(`⚠️ No available traps in range ${minTrap}-${maxTrap}, clearing history`);
-                trapHistory[level] = [];
-                flameIndex = minTrap + Math.floor(random() * (maxTrap - minTrap + 1));
-                console.log(`✅ Using random after history clear: ${flameIndex}`);
+                // Если все заняты (не должно произойти из-за очистки выше), берём случайный
+                flameIndex = minTrap + Math.floor(random() * rangeSize);
+                console.log(`⚠️ No available traps, using random: ${flameIndex}`);
             }
             break;
         }
@@ -331,23 +339,15 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
     
     // Специальное логирование для hardcore режима
     if (level === 'hardcore') {
-        // ПРОВЕРКА: для hardcore должны быть только позиции 5-10
-        if (flameIndex < 5 || flameIndex > 10) {
-            console.error(`ERROR: Hardcore generated invalid position ${flameIndex}! Should be 5-10 only!`);
-            console.error(`Coefficient: ${coefficient}, minTrap: ${minTrap}, maxTrap: ${maxTrap}`);
-        }
-        
         let coeffRange = '';
-        if (coefficient < 100) {
-            coeffRange = 'MID (15-100)';
-        } else if (coefficient < 1000) {
-            coeffRange = 'HIGH (100-1K)';
-        } else if (coefficient < 1000000) {
-            coeffRange = 'MEGA (1K-1M)';
+        if (coefficient < 15) {
+            coeffRange = '🟢 LOW';
+        } else if (coefficient < 100) {
+            coeffRange = '🟡 MID';
         } else {
-            coeffRange = 'ULTRA (1M+)';
+            coeffRange = '🔴 HIGH';
         }
-        console.log(`${logPrefix} ${coeffRange} Level: ${level}, Trap: ${flameIndex}, Coeff: ${coefficient.toLocaleString()}x, History: [${trapHistory[level].join(', ')}], Attempts: ${attempts}`);
+        console.log(`${logPrefix} ${coeffRange} Level: ${level}, Trap: ${flameIndex}, Coeff: ${coefficient}x, History: [${trapHistory[level].join(', ')}], Attempts: ${attempts}`);
     } else {
         console.log(`${logPrefix} Level: ${level}, Trap: ${flameIndex}, Coeff: ${coefficient}x, History: [${trapHistory[level].join(', ')}], Attempts: ${attempts}`);
     }
