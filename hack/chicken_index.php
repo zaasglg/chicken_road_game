@@ -161,8 +161,52 @@
                     if (loader) loader.style.display = 'none';
                 }
 
-                // Helper: show notification (native, jQuery, or fallback)
+                // Helper: translate common server/client messages and show notification
                 function showNotify(msg, type) {
+                    try {
+                        var lang = (localStorage.getItem('language') || 'es');
+
+                        // Local mapping for common server/client English messages -> localized strings
+                        var localMap = {
+                            'Fill in the account ID': { eng: 'Fill in the account ID', es: 'Introduce tu ID de cuenta' },
+                            'Invalid user ID': { eng: 'Invalid user ID', es: 'ID de usuario no válido' },
+                            'User not found': { eng: 'User not found', es: 'Usuario no encontrado' },
+                            'Server error': { eng: 'Server error', es: 'Error del servidor' },
+                            'API connection error': { eng: 'API connection error', es: 'Error de conexión con la API' },
+                            'API error': { eng: 'API error', es: 'Error de la API' }
+                        };
+
+                        // If translations object is loaded, try to find a mapped key
+                        var translated = null;
+                        if (typeof translations === 'object') {
+                            // try to match by known keys in translations
+                            // if the msg already equals a translation value, keep it
+                            Object.keys(translations).forEach(function(l) { /* noop: just to be safe */ });
+
+                            // Simple heuristics: map English server messages to translation keys
+                            if (/Fill in the account ID/i.test(msg) || /Invalid user ID/i.test(msg)) {
+                                translated = translations[lang] && translations[lang]['input_id'] ? translations[lang]['input_id'] : null;
+                            } else if (/User not found/i.test(msg) || /incorrect/i.test(msg) || /not found/i.test(msg)) {
+                                translated = translations[lang] && translations[lang]['login_error'] ? translations[lang]['login_error'] : null;
+                            } else if (/Server error/i.test(msg) || /API connection error/i.test(msg) || /API error/i.test(msg)) {
+                                translated = translations[lang] && translations[lang]['server_error'] ? translations[lang]['server_error'] : null;
+                            }
+                        }
+
+                        // If no translations object or no mapping found, fall back to localMap
+                        if (!translated) {
+                            Object.keys(localMap).forEach(function(k) {
+                                if (new RegExp(k, 'i').test(msg)) {
+                                    translated = localMap[k][lang] || msg;
+                                }
+                            });
+                        }
+
+                        if (translated) msg = translated;
+                    } catch (e) {
+                        console.error('showNotify translate error', e);
+                    }
+
                     if (window.$ && $.notify) {
                         $.notify(msg, type);
                     } else if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.showPopup) {
@@ -188,7 +232,10 @@
                         event.preventDefault();
                         var user_id = document.getElementById('user_id').value.trim();
                         if (!user_id) {
-                            showNotify('Por favor, introduce un ID de usuario válido', 'error');
+                            // Use translations when available
+                            var lang = (localStorage.getItem('language') || 'es');
+                            var emptyMsg = (typeof translations === 'object' && translations[lang] && translations[lang]['input_id']) ? translations[lang]['input_id'] : 'Please enter a valid user ID';
+                            showNotify(emptyMsg, 'error');
                             return;
                         }
                         var formData = new FormData();
@@ -201,16 +248,33 @@
                                 return response.json();
                             })
                             .then(function(data) {
+                                function translateServerMessage(msg) {
+                                    try {
+                                        var lang = (localStorage.getItem('language') || 'es');
+                                        if (typeof translations === 'object' && translations[lang]) {
+                                            var t = translations[lang];
+                                            if (!msg) return t['server_error'] || msg;
+                                            if (/Fill in the account ID/i.test(msg) || /Invalid user ID/i.test(msg)) return t['input_id'] || msg;
+                                            if (/User not found/i.test(msg) || /incorrect/i.test(msg) || /not found/i.test(msg)) return t['login_error'] || msg;
+                                            if (/Server error/i.test(msg) || /API connection error/i.test(msg) || /API error/i.test(msg)) return t['server_error'] || msg;
+                                        }
+                                    } catch (e) {
+                                        console.error('translateServerMessage error', e);
+                                    }
+                                    return msg;
+                                }
+
                                 if (data.success) {
                                     var userInfo = data.user ?
-                                        `¡Bienvenido!` :
-                                        '¡Inicio de sesión exitoso!';
+                                        ((typeof translations === 'object' && translations[localStorage.getItem('language') || 'es'] && translations[localStorage.getItem('language') || 'es']['welcome']) ? translations[localStorage.getItem('language') || 'es']['welcome'] : 'Welcome!') :
+                                        ((typeof translations === 'object' && translations[localStorage.getItem('language') || 'es'] && translations[localStorage.getItem('language') || 'es']['login_success']) ? translations[localStorage.getItem('language') || 'es']['login_success'] : 'Login successful!');
                                     showNotify(userInfo, 'success');
                                     setTimeout(function() {
                                         window.location.href = 'chicken_road.php?user_id=' + encodeURIComponent(user_id);
                                     }, 1000);
                                 } else {
-                                    showNotify(data.message || 'Error de inicio de sesión', 'error');
+                                    var msg = translateServerMessage(data.message || '');
+                                    showNotify(msg || (typeof translations === 'object' && translations[localStorage.getItem('language') || 'es'] ? translations[localStorage.getItem('language') || 'es']['login_error'] : 'Login error'), 'error');
                                 }
                             })
                             .catch(function(error) {
@@ -232,6 +296,38 @@
     <script src="./js/toggle.js?v=1.0"></script>
     <script src="./js/script.js?v=1.0"></script>
     <script src="./js/lang.js?v=1.0"></script>
+    <script>
+        // Ensure the bottom language switch always updates the app language.
+        // This is a lightweight safety handler in case other scripts run before/after.
+        document.addEventListener('DOMContentLoaded', function () {
+            try {
+                const toggle = document.querySelector('.toggle');
+                if (!toggle) return;
+
+                // Keep visual state in sync on load
+                toggle.checked = (localStorage.getItem('language') === 'eng');
+
+                // Attach a handler that sets localStorage and calls the existing updateLanguage()
+                toggle.addEventListener('change', function () {
+                    const newLang = this.checked ? 'eng' : 'es';
+                    localStorage.setItem('language', newLang);
+                    if (typeof updateLanguage === 'function') {
+                        updateLanguage();
+                    } else {
+                        // If updateLanguage isn't loaded yet, dispatch an event so lang.js can react if needed
+                        document.dispatchEvent(new Event('languageChanged'));
+                    }
+                });
+
+                // If other scripts want to know about the language change, listen and call updateLanguage
+                document.addEventListener('languageChanged', function () {
+                    if (typeof updateLanguage === 'function') updateLanguage();
+                });
+            } catch (e) {
+                console.error('Language toggle init error:', e);
+            }
+        });
+    </script>
 </body>
 
 </html>
