@@ -235,22 +235,26 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
         
         // Для hardcore режима используем специальное распределение
         if (level === 'hardcore') {
-            // hardcore: 10% маленькие, 25% средние, 65% большие (15.21+)
-            const lowZone = Math.floor(rangeSize * 0.25);    // Первая четверть
-            const midZone = Math.floor(rangeSize * 0.50);    // До половины
+            // hardcore: генерируем только до 62.96 (позиция 7)
+            // Коэффициенты: 1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96
+            const maxHardcoreIndex = 7; // Позиция 7 = коэффициент 62.96
             
-            if (zoneRoll < 0.10) {
-                // 10% - маленькие коэффициенты (1.63 - 9.08)
+            // 20% - низкие (1.63 - 4.95, позиции 1-3)
+            // 30% - средние (9.08 - 15.21, позиции 4-5)
+            // 50% - высокие (30.12 - 62.96, позиции 6-7)
+            
+            if (zoneRoll < 0.20) {
+                // 20% - низкие коэффициенты (1.63 - 4.95)
                 zoneMin = minTrap;
-                zoneMax = minTrap + lowZone;
-            } else if (zoneRoll < 0.35) {
-                // 25% - средние коэффициенты (15.21 - 140.24)
-                zoneMin = minTrap + lowZone;
-                zoneMax = minTrap + midZone;
+                zoneMax = Math.min(minTrap + 2, maxHardcoreIndex);
+            } else if (zoneRoll < 0.50) {
+                // 30% - средние коэффициенты (9.08 - 15.21)
+                zoneMin = Math.min(minTrap + 3, maxHardcoreIndex);
+                zoneMax = Math.min(minTrap + 4, maxHardcoreIndex);
             } else {
-                // 65% - большие коэффициенты (337.19+)
-                zoneMin = minTrap + midZone;
-                zoneMax = maxTrap;
+                // 50% - высокие коэффициенты (30.12 - 62.96)
+                zoneMin = Math.min(minTrap + 5, maxHardcoreIndex);
+                zoneMax = maxHardcoreIndex;
             }
         } else {
             // Для остальных режимов: 25% маленькие, 35% средние, 40% большие
@@ -340,9 +344,9 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null, lastTrapInd
     // Специальное логирование для hardcore режима
     if (level === 'hardcore') {
         let coeffRange = '';
-        if (coefficient < 15) {
+        if (coefficient < 5) {
             coeffRange = '🟢 LOW';
-        } else if (coefficient < 100) {
+        } else if (coefficient < 20) {
             coeffRange = '🟡 MID';
         } else {
             coeffRange = '🔴 HIGH';
